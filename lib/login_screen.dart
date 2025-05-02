@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'register_screen.dart';
 import 'home_screen.dart';
+import 'onboarding_screen1.dart';
 import 'utils/app_colors.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
+import 'package:revivegoods/api_url.dart';
+import 'package:revivegoods/global.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -31,6 +33,7 @@ class _LoginPageState extends State<LoginPage> {
 
   // Simple login function
   Future<void> _login() async {
+    var urlLogin = "${ApiUrl.LoginUrl}";
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -48,7 +51,7 @@ class _LoginPageState extends State<LoginPage> {
     try {
       print('Sending request...');
       final response = await http.post(
-        Uri.parse('http://192.168.1.16:8000/api/login'),
+        Uri.parse(urlLogin),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': _emailController.text,
@@ -59,6 +62,8 @@ class _LoginPageState extends State<LoginPage> {
       final responseData = jsonDecode(response.body);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        Global.access_token = responseData['token'];
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(responseData['message'] ?? 'Login successful!'),
@@ -69,7 +74,7 @@ class _LoginPageState extends State<LoginPage> {
         if (mounted) {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
+            MaterialPageRoute(builder: (context) => const OnboardingScreen()),
           );
         }
       } else {

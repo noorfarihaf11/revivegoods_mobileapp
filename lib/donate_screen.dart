@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'set_address_screen.dart';
 import '../utils/app_colors.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:revivegoods/api_url.dart';
+import 'package:revivegoods/providers/donation_provider.dart';
+import 'package:revivegoods/global.dart';
+import 'package:provider/provider.dart';
 
 class DonateScreen extends StatefulWidget {
   const DonateScreen({Key? key}) : super(key: key);
@@ -12,79 +18,76 @@ class DonateScreen extends StatefulWidget {
 class _DonateScreenState extends State<DonateScreen> {
   String _selectedCategory = 'Clothes';
 
-  // Item quantities
-  Map<String, int> quantities = {
-    'baby clothes': 0,
-    'jacket': 0,
-    'shirt': 0,
-    'shoes': 0,
+  @override
+  void initState() {
+    super.initState();
+    getDonateScreen();
+  }
 
-    // Toys
-    'teddy bear': 0,
-    'car': 0,
+  Future<void> getDonateScreen() async {
+    try {
+      final itemdonate = await http.get(
+        Uri.parse("${ApiUrl.GetItemUrl}"),
+        headers: {
+          'Authorization': 'Bearer ${Global.access_token}',
+          'Accept': 'application/json',
+        },
+      );
 
-    // Others
-    'books': 0,
-    'kitchenware': 0,
-    'electronics': 0,
-  };
+      final itemData = json.decode(itemdonate.body);
 
-  // Item points
-  Map<String, int> points = {
-    'baby clothes': 20,
-    'jacket': 75,
-    'shirt': 50,
-    'shoes' : 60,
+      if (itemdonate.statusCode == 200) {
+        List<dynamic> items = itemData['items'];
 
-    // Toys
-    'teddy bear': 30,
-    'car': 35,
+        if (items.isEmpty) {
+          Global.message = "Data Barang Kosong";
+        } else {
+          final donationProvider = Provider.of<DonationProvider>(
+              context, listen: false);
+          donationProvider.setItemsFromApi(items);
 
-    // Others
-    'books': 15,
-    'kitchenware': 45,
-    'electronics': 100,
-  };
-
-  // Items in each category
-  Map<String, List<String>> categoryItems = {
-    'Clothes': ['baby clothes', 'jacket', 'shirt', 'shoes'],
-    'Toys': ['teddy bear', 'car'],
-    'Others': ['books', 'kitchenware', 'electronics'],
-  };
+          setState(() {});
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to load items. Please try again later.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      print("Error: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('An error occurred. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   // Update the quantity of an item
-  void _updateQuantity(String item, int change) {
-    setState(() {
-      quantities[item] = (quantities[item] ?? 0) + change;
-      if (quantities[item]! < 0) {
-        quantities[item] = 0;
-      }
-    });
+  void _updateQuantity(BuildContext context, String item, int change) {
+    final provider = Provider.of<DonationProvider>(context, listen: false);
+    provider.updateQuantity(item, change);
   }
 
   // Check if any item has a quantity greater than 0
   bool get _hasSelectedItems {
-    return quantities.values.any((quantity) => quantity > 0);
+    final provider = Provider.of<DonationProvider>(context);
+    return provider.hasSelectedItems;
   }
 
-  // Get selected items for order summary
   List<Map<String, dynamic>> get _selectedItems {
-    List<Map<String, dynamic>> items = [];
-    quantities.forEach((item, quantity) {
-      if (quantity > 0) {
-        items.add({
-          'name': item,
-          'quantity': quantity,
-          'coins': points[item] ?? 0,
-        });
-      }
-    });
-    return items;
+    final provider = Provider.of<DonationProvider>(context);
+    return provider.selectedItems;
   }
 
   @override
   Widget build(BuildContext context) {
+    final donationProvider = Provider.of<DonationProvider>(context);
+
     return Column(
       children: [
         // Category tabs
@@ -103,14 +106,18 @@ class _DonateScreenState extends State<DonateScreen> {
         Expanded(
           child: ListView.separated(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            itemCount: categoryItems[_selectedCategory]?.length ?? 0,
-            separatorBuilder: (context, index) => const Divider(
+            itemCount: donationProvider.categorizedItems[_selectedCategory]
+                ?.length ?? 0,
+            separatorBuilder: (context, index) =>
+            const Divider(
               height: 1,
               thickness: 1,
               color: AppColors.divider,
             ),
             itemBuilder: (context, index) {
-              final itemName = categoryItems[_selectedCategory]![index];
+              final item = donationProvider
+                  .categorizedItems[_selectedCategory]![index];
+              final itemName = item['name'];
               return _buildDonationItem(itemName);
             },
           ),
@@ -129,9 +136,10 @@ class _DonateScreenState extends State<DonateScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => SetAddressScreen(
-                        selectedItems: _selectedItems,
-                      ),
+                      builder: (context) =>
+                          SetAddressScreen(
+                            selectedItems: _selectedItems,
+                          ),
                     ),
                   );
                 },
@@ -184,21 +192,42 @@ class _DonateScreenState extends State<DonateScreen> {
 
   // Build a donation item
   Widget _buildDonationItem(String itemName) {
+    final provider = Provider.of<DonationProvider>(context);
+    final quantity = provider.quantities[itemName] ?? 0;
+    final coin = provider.getCoin(itemName);
+
+    // Ambil URL gambar dari data item
+    String imagePath = ''; // Ambil URL gambar dari data item
+
+    // Misalnya, jika data item memiliki key 'image_url'
+    final itemData = provider.categorizedItems[_selectedCategory]?.firstWhere(
+          (item) => item['name'] == itemName,
+      orElse: () => {}, // Kembalikan Map kosong jika item tidak ditemukan
+    );
+
+    if (itemData!.isNotEmpty) {
+      imagePath = itemData['image'] ?? ''; // Menyimpan URL gambar dari data
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16.0),
       child: Row(
         children: [
-          // Item icon with colored background
-          Container(
+          // Menampilkan gambar dari path lokal
+          imagePath.isNotEmpty
+              ? Image.asset(
+            imagePath, // Path lokal di dalam folder 'assets'
             width: 75,
             height: 75,
-            child: Center(
-              child: _getItemImage(itemName),
-            ),
-          ),
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return const Icon(
+                  Icons.error); // Menampilkan ikon jika gambar gagal dimuat
+            },
+          )
+              : const Icon(Icons.image),
+          // Menampilkan ikon jika URL gambar kosong
           const SizedBox(width: 16),
-
-          // Item name
           Text(
             itemName,
             style: const TextStyle(
@@ -207,10 +236,7 @@ class _DonateScreenState extends State<DonateScreen> {
               color: AppColors.textDark,
             ),
           ),
-
           const Spacer(),
-
-          // Points
           Container(
             padding: const EdgeInsets.all(6),
             decoration: const BoxDecoration(
@@ -218,7 +244,7 @@ class _DonateScreenState extends State<DonateScreen> {
               shape: BoxShape.circle,
             ),
             child: Text(
-              '${points[itemName]}',
+              '$coin',
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -226,14 +252,11 @@ class _DonateScreenState extends State<DonateScreen> {
               ),
             ),
           ),
-
           const SizedBox(width: 12),
-
-          // Quantity selector
           Row(
             children: [
               InkWell(
-                onTap: () => _updateQuantity(itemName, -1),
+                onTap: () => _updateQuantity(context, itemName, -1),
                 child: Container(
                   width: 28,
                   height: 28,
@@ -249,7 +272,7 @@ class _DonateScreenState extends State<DonateScreen> {
                 height: 28,
                 alignment: Alignment.center,
                 child: Text(
-                  '${quantities[itemName]}',
+                  '$quantity',
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
@@ -257,7 +280,7 @@ class _DonateScreenState extends State<DonateScreen> {
                 ),
               ),
               InkWell(
-                onTap: () => _updateQuantity(itemName, 1),
+                onTap: () => _updateQuantity(context, itemName, 1),
                 child: Container(
                   width: 28,
                   height: 28,
@@ -272,71 +295,6 @@ class _DonateScreenState extends State<DonateScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  // Get the image for an item
-  Widget _getItemImage(String itemName) {
-    String imagePath;
-
-    // Different image paths based on category
-    if (categoryItems['Clothes']?.contains(itemName) ?? false) {
-      switch (itemName) {
-        case 'baby clothes':
-          imagePath = 'images/onesie.png';
-          break;
-        case 'jacket':
-          imagePath = 'images/jacket.png';
-          break;
-        case 'shirt':
-          imagePath = 'images/tshirt.png';
-          break;
-        case 'shoes':
-          imagePath = 'images/shoes.png';
-          break;
-        default:
-          imagePath = 'images/default.png';
-      }
-    } else if (categoryItems['Toys']?.contains(itemName) ?? false) {
-      switch (itemName) {
-        case 'teddy bear':
-          imagePath = 'images/cute.png';
-          break;
-        case 'car':
-          imagePath = 'images/sport-car.png';
-          break;
-        default:
-          imagePath = 'images/default.png';
-      }
-    } else {
-      switch (itemName) {
-        case 'books':
-          imagePath = 'images/stack-of-books.png';
-          break;
-        case 'kitchenware':
-          imagePath = 'images/kitchenware.png';
-          break;
-        case 'electronics':
-          imagePath = 'images/gadget.png';
-          break;
-        default:
-          imagePath = 'images/default.png';
-      }
-    }
-
-    return Image.asset(
-      imagePath,
-      width: 75,
-      height: 75,
-      fit: BoxFit.contain,
-      errorBuilder: (context, error, stackTrace) {
-        print('Error loading image for $itemName: $error');
-        // Fallback to a simple colored box if image fails to load
-        return Container(
-          width: 32,
-          height: 32,
-        );
-      },
     );
   }
 }

@@ -3,6 +3,7 @@ import 'login_screen.dart';
 import 'utils/app_colors.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:revivegoods/api_url.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({Key? key}) : super(key: key);
@@ -29,6 +30,7 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   void _signUp() async {
+    var urlSignup = "${ApiUrl.SignUpUrl}";
     if (_passwordController.text != _confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -46,7 +48,7 @@ class _RegisterPageState extends State<RegisterPage> {
     try {
       print('Sending request...');
       final response = await http.post(
-        Uri.parse('http://192.168.1.16:8000/api/register'),
+        Uri.parse(urlSignup),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'name': _nameController.text,
