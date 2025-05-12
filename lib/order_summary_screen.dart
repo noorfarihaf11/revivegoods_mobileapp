@@ -16,15 +16,7 @@ class OrderSummaryScreen extends StatelessWidget {
   }) : super(key: key);
 
   @override
-
   Widget build(BuildContext context) {
-
-    void history() {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HistoryScreen()),
-      );
-    }
-
     final theme = Theme.of(context);
 
     // Generate a random order ID
@@ -39,7 +31,7 @@ class OrderSummaryScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Summary',
+          'Order Summary',
           style: TextStyle(color: Colors.white),
         ),
         backgroundColor: const Color(0xFF4B367C),
@@ -55,316 +47,381 @@ class OrderSummaryScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Delivery truck image
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24.0),
-                  child: Image.asset(
-                    'assets/images/delivery_truck.png',
-                    width: 150,
-                    height: 120,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: 150,
-                        height: 120,
-                        color: Colors.grey[300],
-                        child: const Icon(
-                          Icons.local_shipping,
-                          size: 80,
-                          color: Color(0xFF4B367C),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-
-              // Order ID
-              Center(
-                child: Text(
-                  'ORDER $orderId',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF4B367C),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 40),
 
               // Pickup details section
-              const Text(
-                'Pickup details:',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF4B367C),
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Pickup Details',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF4B367C),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Date and time row
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.calendar_today,
+                            color: Color(0xFF4B367C),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Date',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                                Text(
+                                  selectedDate,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Time row
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.access_time,
+                            color: Color(0xFF4B367C),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Time',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                                Text(
+                                  selectedTime,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Address row
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.location_on,
+                            color: Color(0xFF4B367C),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Address',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                                Text(
+                                  address,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
 
-              const SizedBox(height: 16),
-
-              Text(
-                selectedDate,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF4B367C),
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              // Address details - split into parts for better formatting
-              Text(
-                address.split(',')[0].trim(), // First line of address
-                style: const TextStyle(
-                  fontSize: 18,
-                  color: Color(0xFF4B367C),
-                ),
-              ),
-
-              Text(
-                address.split(',').length > 1 ? address.substring(address.indexOf(',') + 1).trim() : '',
-                style: const TextStyle(
-                  fontSize: 18,
-                  color: Color(0xFF4B367C),
-                ),
-              ),
-
-              const SizedBox(height: 40),
+              const SizedBox(height: 24),
 
               // Order details section
-              const Text(
-                'Order details:',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF4B367C),
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Table header
-              Row(
-                children: const [
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      'Items',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF4B367C),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      'Quantity',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF4B367C),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      'Coins',
-                      textAlign: TextAlign.right,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF4B367C),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 16),
-
-              // Order items
-              ...orderItems.map((item) => Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        // Capitalize first letter of item name
-                        item['name'].toString().substring(0, 1).toUpperCase() +
-                            item['name'].toString().substring(1),
-                        style: const TextStyle(
-                          fontSize: 18,
-                          color: Color(0xFF4B367C),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Text(
-                        item['quantity'].toString(),
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          color: Color(0xFF4B367C),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          const Icon(
-                            Icons.star,
-                            color: Colors.amber,
-                            size: 24,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            (item['coins'] * item['quantity']).toString(),
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF4B367C),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              )).toList(),
-
-              const Divider(thickness: 1),
-
-              // Subtotal
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Row(
-                  children: [
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        '$totalItems items',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          color: Color(0xFF4B367C),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Container(),
-                    ),
-                    Expanded(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          const Icon(
-                            Icons.star,
-                            color: Colors.amber,
-                            size: 24,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            subtotalCoins.toString(),
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF4B367C),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Delivery fee
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Row(
-                  children: [
-                    const Expanded(
-                      flex: 2,
-                      child: Text(
-                        'Delivery Fee',
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Order Details',
                         style: TextStyle(
-                          fontSize: 18,
-                          color: Color(0xFF4B367C),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Container(),
-                    ),
-                    Expanded(
-                      child: Text(
-                        deliveryFee.toString(),
-                        textAlign: TextAlign.right,
-                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF4B367C),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
 
-              const Divider(thickness: 1),
+                      const SizedBox(height: 16),
 
-              // Total
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Row(
-                  children: [
-                    const Expanded(
-                      flex: 2,
-                      child: Text(
-                        'Total',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF4B367C),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Container(),
-                    ),
-                    Expanded(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          const Icon(
-                            Icons.star,
-                            color: Colors.amber,
-                            size: 24,
+                      // Table header
+                      Row(
+                        children: const [
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              'Items',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF4B367C),
+                              ),
+                            ),
                           ),
-                          const SizedBox(width: 4),
-                          Text(
-                            totalCoins.toString(),
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF4B367C),
+                          Expanded(
+                            child: Text(
+                              'Qty',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF4B367C),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              'Coins',
+                              textAlign: TextAlign.right,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF4B367C),
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
+
+                      const Divider(height: 24, thickness: 1),
+
+                      // Order items
+                      ...orderItems.map((item) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              flex: 2,
+                              child: Text(
+                                // Capitalize first letter of item name
+                                item['name'].toString().substring(0, 1).toUpperCase() +
+                                    item['name'].toString().substring(1),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Color(0xFF4B367C),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                item['quantity'].toString(),
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Color(0xFF4B367C),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  const Icon(
+                                    Icons.monetization_on,
+                                    color: Colors.amber,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    (item['coins'] * item['quantity']).toString(),
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF4B367C),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      )).toList(),
+
+                      const Divider(height: 24, thickness: 1),
+
+                      // Subtotal
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              flex: 2,
+                              child: Text(
+                                '$totalItems items',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Color(0xFF4B367C),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Container(),
+                            ),
+                            Expanded(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  const Icon(
+                                    Icons.monetization_on,
+                                    color: Colors.amber,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    subtotalCoins.toString(),
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF4B367C),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Delivery fee
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          children: [
+                            const Expanded(
+                              flex: 2,
+                              child: Text(
+                                'Delivery Fee',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Color(0xFF4B367C),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Container(),
+                            ),
+                            Expanded(
+                              child: Text(
+                                deliveryFee.toString(),
+                                textAlign: TextAlign.right,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF4B367C),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const Divider(height: 24, thickness: 1),
+
+                      // Total
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          children: [
+                            const Expanded(
+                              flex: 2,
+                              child: Text(
+                                'Total',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF4B367C),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Container(),
+                            ),
+                            Expanded(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  const Icon(
+                                    Icons.monetization_on,
+                                    color: Colors.amber,
+                                    size: 24,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    totalCoins.toString(),
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF4B367C),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-
-              const SizedBox(height: 40),
             ],
           ),
         ),
@@ -385,13 +442,14 @@ class OrderSummaryScreen extends StatelessWidget {
                     actions: [
                       TextButton(
                         onPressed: () {
-                          Navigator.of(context).pop(); // tutup AlertDialog dulu
+                          Navigator.of(context).pop(); // Close the dialog
 
-                          Future.delayed(Duration(milliseconds: 200), () {
-                            Navigator.of(context).pushReplacement(
-                              MaterialPageRoute(builder: (context) => const HistoryScreen()),
-                            );
-                          });
+                          // Navigate to history screen after confirmation
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(builder: (context) => const HistoryScreen()),
+                                (route) => false, // Remove all previous routes
+                          );
                         },
                         child: const Text('OK'),
                       ),
@@ -407,7 +465,7 @@ class OrderSummaryScreen extends StatelessWidget {
               ),
             ),
             child: const Text(
-              'Confirm',
+              'Confirm Donation',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -420,4 +478,3 @@ class OrderSummaryScreen extends StatelessWidget {
     );
   }
 }
-
