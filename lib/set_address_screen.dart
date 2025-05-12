@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'order_summary_screen.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:revivegoods/api_url.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'order_summary_screen.dart';
+import 'package:geocoding/geocoding.dart';
+
 
 class SetAddressScreen extends StatefulWidget {
   final List<Map<String, dynamic>> selectedItems;
+
 
   const SetAddressScreen({
     Key? key,
@@ -15,25 +21,94 @@ class SetAddressScreen extends StatefulWidget {
   State<SetAddressScreen> createState() => _SetAddressScreenState();
 }
 
+class MapView extends StatelessWidget {
+  final LatLng center;
+  final Function(LatLng) onTap;
+
+  const MapView({super.key, required this.center, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return FlutterMap(
+      options: MapOptions(
+        center: center,
+        zoom: 13.0,
+        onTap: (tapPosition, point) {
+          onTap(point);
+        },
+      ),
+      children: [
+        TileLayer(
+          urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+          subdomains: const ['a', 'b', 'c'],
+          userAgentPackageName: 'com.example.app',
+        ),
+        MarkerLayer(
+          markers: [
+            Marker(
+              width: 40.0,
+              height: 40.0,
+              point: center,
+              builder: (ctx) => const Icon(Icons.location_pin, color: Colors.red, size: 40),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+
 class _SetAddressScreenState extends State<SetAddressScreen> {
   int _selectedDay = 2; // Default to Saturday (index 2)
   int _selectedHour = 10;
   bool _isAM = true;
+  LatLng _selectedLatLng = LatLng(-6.2, 106.816666); // Jakarta sebagai default
+  TimeOfDay _selectedTime = TimeOfDay(hour: 10, minute: 0);
   final TextEditingController _addressController = TextEditingController();
 
-  final List<Map<String, dynamic>> _days = [
-    {'day': 'THU', 'date': '8'},
-    {'day': 'FRI', 'date': '9'},
-    {'day': 'SAT', 'date': '10'},
-    {'day': 'SUN', 'date': '11'},
-    {'day': 'MON', 'date': '12'},
-  ];
+  late List<Map<String, dynamic>> _days;
+
 
   @override
   void initState() {
     super.initState();
+
+    final today = DateTime.now();
+    _days = List.generate(5, (index) {
+      final date = today.add(Duration(days: index));
+      return {
+        'day': _getShortDayName(date.weekday),
+        'date': date.day.toString(),
+        'fullDate': date, // kita simpan ini untuk pemrosesan tanggal
+      };
+    });
+
     _addressController.text = 'Emerald Blue Cluster B-25, Joggers Park, Melbourne, 61116';
   }
+
+  String _getShortDayName(int weekday) {
+    const dayNames = {
+      1: 'MON',
+      2: 'TUE',
+      3: 'WED',
+      4: 'THU',
+      5: 'FRI',
+      6: 'SAT',
+      7: 'SUN',
+    };
+    return dayNames[weekday] ?? '';
+  }
+
+  String _getMonthName(int month) {
+    const months = [
+      '', 'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return months[month];
+  }
+
+
 
   @override
   void dispose() {
@@ -42,23 +117,45 @@ class _SetAddressScreenState extends State<SetAddressScreen> {
   }
 
   String _getFormattedDate() {
-    final Map<String, String> months = {
-      'THU': 'September',
-      'FRI': 'September',
-      'SAT': 'September',
-      'SUN': 'September',
-      'MON': 'September',
-    };
-
-    final day = _days[_selectedDay]['day'];
-    final date = _days[_selectedDay]['date'];
-    final month = months[day];
-
-    return '$day, ${date}th $month 2025';
+    final selectedDate = _days[_selectedDay]['fullDate'] as DateTime;
+    final dayName = _getShortDayName(selectedDate.weekday);
+    final monthName = _getMonthName(selectedDate.month);
+    return '$dayName, ${selectedDate.day}th $monthName ${selectedDate.year}';
   }
 
+
   String _getFormattedTime() {
-    return '$_selectedHour ${_isAM ? 'AM' : 'PM'}';
+    return _selectedTime.format(context); // output otomatis dalam format 10:00 AM
+  }
+
+  Future<void> _updateAddressFromLatLng(LatLng position) async {
+    final url =
+        'https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${position.latitude}&lon=${position.longitude}';
+
+    try {
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'User-Agent': 'FlutterApp (noorfarihaf11@gmail.com)', // Ganti dengan emailmu
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final address = data['display_name'];
+        if (address != null) {
+          setState(() {
+            _addressController.text = address;
+          });
+        } else {
+          print('Geocoding failed: No address found');
+        }
+      } else {
+        print('HTTP Error: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Geocoding error: $e');
+    }
   }
 
   @override
@@ -77,43 +174,26 @@ class _SetAddressScreenState extends State<SetAddressScreen> {
           // Map view
           Expanded(
             flex: 2,
-            child: Stack(
-              children: [
-                // Placeholder for map - in a real app, use Google Maps or other map provider
-                Container(
-                  color: Colors.grey[300],
-                  width: double.infinity,
-                  child: Center(
-                    child: Icon(
-                      Icons.map,
-                      size: 100,
-                      color: Colors.grey[400],
-                    ),
-                  ),
-                ),
-
-                // Location pin
-                Center(
-                  child: Icon(
-                    Icons.location_pin,
-                    color: theme.colorScheme.primary,
-                    size: 40,
-                  ),
-                ),
-              ],
+            child: MapView(
+              center: _selectedLatLng,
+              onTap: (LatLng position) {
+                setState(() {
+                  _selectedLatLng = position;
+                });
+                _updateAddressFromLatLng(position);
+              },
             ),
           ),
 
+
           // Address and time selection
-          Expanded(
-            flex: 3,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(24),
-                  topRight: Radius.circular(24),
-                ),
+      Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.grey.withOpacity(0.3),
@@ -123,9 +203,10 @@ class _SetAddressScreenState extends State<SetAddressScreen> {
                   ),
                 ],
               ),
-              child: SingleChildScrollView(
+              child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min, // Prevent the column from expanding unnecessarily
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
@@ -193,68 +274,39 @@ class _SetAddressScreenState extends State<SetAddressScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 24),
 
-                    const Text(
-                      'When do you want us to pick the order?',
+                    const SizedBox(height: 16),
+                    Text(
+                      'Pickup Time',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 16),
-
-                    // AM/PM toggle
+                    const SizedBox(height: 8),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildTimeToggle('AM', _isAM),
-                        const SizedBox(width: 16),
-                        _buildTimeToggle('PM', !_isAM),
-                      ],
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Hour selector
-                    Container(
-                      height: 60,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: List.generate(12, (index) {
-                          final hour = index + 1;
-                          return GestureDetector(
-                            onTap: () {
+                        Text(
+                          _selectedTime.format(context),
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.access_time),
+                          label: const Text('Pick Time'),
+                          onPressed: () async {
+                            final pickedTime = await showTimePicker(
+                              context: context,
+                              initialTime: _selectedTime,
+                            );
+                            if (pickedTime != null) {
                               setState(() {
-                                _selectedHour = hour;
+                                _selectedTime = pickedTime;
                               });
-                            },
-                            child: Container(
-                              width: 28,
-                              decoration: BoxDecoration(
-                                color: _selectedHour == hour
-                                    ? theme.colorScheme.primary
-                                    : Colors.white,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: Colors.grey.shade300,
-                                ),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  hour.toString(),
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: _selectedHour == hour
-                                        ? Colors.white
-                                        : Colors.black,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        }),
-                      ),
+                            }
+                          },
+                        ),
+                      ],
                     ),
 
                     const SizedBox(height: 24),
@@ -262,6 +314,7 @@ class _SetAddressScreenState extends State<SetAddressScreen> {
                     // Address input
                     TextField(
                       controller: _addressController,
+                      readOnly: true,
                       decoration: InputDecoration(
                         labelText: 'Address',
                         hintText: 'Enter your pickup address',
@@ -313,7 +366,6 @@ class _SetAddressScreenState extends State<SetAddressScreen> {
                 ),
               ),
             ),
-          ),
         ],
       ),
     );

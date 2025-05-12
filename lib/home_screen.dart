@@ -46,28 +46,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isValidIndex = _selectedIndex >= 0 && _selectedIndex < _titles.length;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          _titles[_selectedIndex],
+          isValidIndex ? _titles[_selectedIndex] : '',
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w600,
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-            onPressed: () {
-              // Handle notifications
-            },
-          ),
-
-        ],
+        backgroundColor: AppColors.primary,
       ),
-      body: _screens[_selectedIndex],
+      body: SafeArea(
+        child: isValidIndex ? _screens[_selectedIndex] : const Center(child: Text('Halaman tidak ditemukan')),
+      ),
       bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
+        items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
             activeIcon: Icon(Icons.home),
