@@ -1,19 +1,125 @@
 import 'package:flutter/material.dart';
+import 'package:revivegoods/models/PickupItemModel.dart';
 import 'history_screen.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
+import 'package:revivegoods/api_url.dart';
+import 'models/PickupRequestModel.dart';
+
 
 class OrderSummaryScreen extends StatelessWidget {
   final String selectedDate;
   final String selectedTime;
   final String address;
-  final List<Map<String, dynamic>> orderItems;
+  final List<PickupItem> orderItems;
 
   const OrderSummaryScreen({
     Key? key,
     required this.selectedDate,
     required this.selectedTime,
     required this.address,
-    required this.orderItems,
+    required this.orderItems
   }) : super(key: key);
+
+  int getTotalCoins() {
+    final int subtotalCoins = orderItems.fold(0, (sum, item) => sum + (item.coins * item.quantity));
+    const int deliveryFee = -10;
+    return subtotalCoins + deliveryFee;
+  }
+
+  Future<String?> getToken() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString('access_token'); // Use the correct key
+  }
+
+  Future<String?> getUserId() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final int? userId = prefs.getInt('user_id');
+    print('User ID: $userId');
+    return userId?.toString(); // Convert to string for the API
+  }
+
+
+  Future<bool> submitPickupRequest() async {
+    var urlPickupRequest = "${ApiUrl.PickupRequestUrl}";
+    try {
+      final String? token = await getToken();
+      print('JWT Token: $token');
+      if (token == null) {
+        print('No JWT token found');
+        return false;
+      }
+
+      final String? userId = await getUserId();
+      print('User ID: $userId');
+      if (userId == null) {
+        print('No user ID found');
+        return false;
+      }
+
+      String dateTimeString = '$selectedDate $selectedTime';
+      dateTimeString = dateTimeString.split(' at ')[0];
+      dateTimeString = dateTimeString.replaceAll('SAT', 'Sat').replaceAll('SUN', 'Sun').replaceAll('MON', 'Mon').replaceAll('TUE', 'Tue').replaceAll('WED', 'Wed').replaceAll('THU', 'Thu').replaceAll('FRI', 'Fri');
+      dateTimeString = dateTimeString.replaceAll(RegExp(r'(st|nd|rd|th)'), '');
+
+      final DateFormat inputFormat = DateFormat('EEE, d MMMM y hh:mm a', 'en_US');
+      final DateTime parsedDate = inputFormat.parse(dateTimeString);
+      final String scheduledAt = DateFormat('yyyy-MM-dd HH:mm:ss').format(parsedDate);
+      print('Scheduled At: $scheduledAt');
+
+      // Validasi id_donationitem
+      for (var item in orderItems) {
+        if (item.idDonationItem <= 0) { // Validasi ID positif
+          print('Error: Invalid id_donationitem for item: ${item.name}');
+          return false;
+        }
+      }
+
+      final Map<String, dynamic> requestBody = {
+        'id_user': userId,
+        'scheduled_at': scheduledAt,
+        'status': 'requested',
+        'address': address,
+        'total_coins': getTotalCoins(),
+        'items': orderItems.map((item) => {
+          'id_donationitem': item.idDonationItem,
+          'name': item.name,
+        }).toList(),
+      };
+      print('Request Body: $requestBody');
+
+      final response = await http.post(
+        Uri.parse(urlPickupRequest),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(requestBody),
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        print('Pickup request submitted successfully: ${responseData['message']}');
+        return true;
+      } else {
+        print('Failed to submit pickup request: ${response.statusCode}');
+        print('Response body: ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      print('Error submitting pickup request: $e');
+      if (e is http.ClientException) {
+        print('ClientException details: ${e.message}, URI: ${e.uri}');
+      }
+      return false;
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -23,9 +129,9 @@ class OrderSummaryScreen extends StatelessWidget {
     final String orderId = 'ID-110805';
 
     // Calculate totals
-    final int totalItems = orderItems.fold(0, (sum, item) => sum + (item['quantity'] as int));
-    final int subtotalCoins = orderItems.fold(0, (sum, item) => sum + ((item['coins'] as int) * (item['quantity'] as int)));
-    const int deliveryFee = -10; // Negative because it's a deduction
+    final int totalItems = orderItems.fold(0, (sum, item) => sum + item.quantity);
+    final int subtotalCoins = orderItems.fold(0, (sum, item) => sum + (item.coins * item.quantity));
+    const int deliveryFee = -10;
     final int totalCoins = subtotalCoins + deliveryFee;
 
     return Scaffold(
@@ -251,9 +357,7 @@ class OrderSummaryScreen extends StatelessWidget {
                             Expanded(
                               flex: 2,
                               child: Text(
-                                // Capitalize first letter of item name
-                                item['name'].toString().substring(0, 1).toUpperCase() +
-                                    item['name'].toString().substring(1),
+                                item.name.substring(0, 1).toUpperCase() + item.name.substring(1),
                                 style: const TextStyle(
                                   fontSize: 16,
                                   color: Color(0xFF4B367C),
@@ -262,7 +366,7 @@ class OrderSummaryScreen extends StatelessWidget {
                             ),
                             Expanded(
                               child: Text(
-                                item['quantity'].toString(),
+                                item.quantity.toString(),
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   fontSize: 16,
@@ -281,7 +385,7 @@ class OrderSummaryScreen extends StatelessWidget {
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    (item['coins'] * item['quantity']).toString(),
+                                    (item.coins * item.quantity).toString(),
                                     style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
@@ -294,7 +398,6 @@ class OrderSummaryScreen extends StatelessWidget {
                           ],
                         ),
                       )).toList(),
-
                       const Divider(height: 24, thickness: 1),
 
                       // Subtotal
@@ -431,32 +534,69 @@ class OrderSummaryScreen extends StatelessWidget {
         child: SizedBox(
           height: 56,
           child: ElevatedButton(
-            onPressed: () {
-              // Show confirmation dialog
+            onPressed: () async {
+              // Tampilkan loading indicator
               showDialog(
                 context: context,
-                builder: (BuildContext context) {
-                  return AlertDialog(
-                    title: const Text('Confirm Donation'),
-                    content: const Text('Your donation has been scheduled. Thank you for your contribution!'),
+                barrierDismissible: false,
+                builder: (_) => const Center(child: CircularProgressIndicator()),
+              );
+
+              // Panggil submitPickupRequest
+              bool success = await submitPickupRequest();
+
+              // Tutup loading indicator
+              if (!context.mounted) return;
+              Navigator.of(context).pop();
+
+              // Jika berhasil, tampilkan dialog "Thank you"
+              if (success) {
+                if (!context.mounted) return;
+                await showDialog(
+                  context: context,
+                  builder: (BuildContext dialogContext) {
+                    return AlertDialog(
+                      title: const Text('Thank You!'),
+                      content: const Text('Your donation has been successfully scheduled. Thank you for your contribution!'),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(dialogContext).pop(); // Tutup dialog
+                          },
+                          child: const Text('OK'),
+                        ),
+                      ],
+                    );
+                  },
+                );
+
+                // Pindah ke HistoryScreen setelah dialog ditutup
+                if (!context.mounted) return;
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const HistoryScreen()),
+                      (route) => false,
+                );
+              } else {
+                // Jika gagal, tampilkan dialog error
+                if (!context.mounted) return;
+                showDialog(
+                  context: context,
+                  builder: (_) => AlertDialog(
+                    title: const Text('Error'),
+                    content: const Text('Failed to submit pickup request. Please try again.'),
                     actions: [
                       TextButton(
                         onPressed: () {
-                          Navigator.of(context).pop(); // Close the dialog
-
-                          // Navigate to history screen after confirmation
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(builder: (context) => const HistoryScreen()),
-                                (route) => false, // Remove all previous routes
-                          );
+                          if (!context.mounted) return;
+                          Navigator.of(context).pop();
                         },
                         child: const Text('OK'),
                       ),
                     ],
-                  );
-                },
-              );
+                  ),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF4B367C),

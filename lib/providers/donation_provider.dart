@@ -19,14 +19,40 @@ class DonationProvider with ChangeNotifier {
 
   int getCoin(String item) => _coins[item] ?? 0;
 
-  List<Map<String, dynamic>> get selectedItems => _quantities.entries
-      .where((e) => e.value > 0)
-      .map((e) => {
-    'name': e.key,
-    'quantity': e.value,
-    'coins': _coins[e.key] ?? 0,
-  })
-      .toList();
+  int get totalCoins {
+    int total = 0;
+    _quantities.forEach((item, qty) {
+      final coinValue = _coins[item] ?? 0;
+      total += qty * coinValue;
+    });
+    return total;
+  }
+
+  List<Map<String, dynamic>> get selectedItems {
+    List<Map<String, dynamic>> selected = [];
+
+    _quantities.forEach((itemName, qty) {
+      if (qty > 0) {
+        final item = _categorizedItems.values
+            .expand((list) => list)
+            .firstWhere(
+              (element) => element['name'] == itemName,
+          orElse: () => {}, // ✅ Hindari null
+        );
+
+        if (item.isNotEmpty) {
+          selected.add({
+            'id_donationitem': item['id_donationitem'],
+            'name': itemName,
+            'quantity': qty,
+            'coins': _coins[itemName] ?? 0,
+          });
+        }
+      }
+    });
+
+    return selected;
+  }
 
   bool get hasSelectedItems => _quantities.values.any((q) => q > 0);
 
@@ -37,6 +63,7 @@ class DonationProvider with ChangeNotifier {
     _categorizedItems.clear();
 
     for (var item in apiItems) {
+      final id_donationitem = item['id_donationitem'];
       final name = item['name'];
       final coinValue = int.tryParse(item['coins'].toString()) ?? 0;
       final category = item['category_name'] ?? 'Others';
@@ -52,6 +79,7 @@ class DonationProvider with ChangeNotifier {
       }
       // Add image_url along with other item data
       _categorizedItems[category]!.add({
+        'id_donationitem': id_donationitem,
         'name': name,
         'image': image,
         'coins': coinValue,

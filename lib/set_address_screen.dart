@@ -6,6 +6,7 @@ import 'package:revivegoods/api_url.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:revivegoods/models/PickupItemModel.dart';
 
 
 class SetAddressScreen extends StatefulWidget {
@@ -23,9 +24,15 @@ class SetAddressScreen extends StatefulWidget {
 
 class MapView extends StatelessWidget {
   final LatLng center;
+  final LatLng markerPosition;
   final Function(LatLng) onTap;
 
-  const MapView({super.key, required this.center, required this.onTap});
+  const MapView({
+    super.key,
+    required this.center,
+    required this.markerPosition,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +55,7 @@ class MapView extends StatelessWidget {
             Marker(
               width: 40.0,
               height: 40.0,
-              point: center,
+              point: markerPosition,
               builder: (ctx) => const Icon(Icons.location_pin, color: Colors.red, size: 40),
             ),
           ],
@@ -73,6 +80,7 @@ class _SetAddressScreenState extends State<SetAddressScreen> {
   @override
   void initState() {
     super.initState();
+    print('selectedItems di SetAddressScreen: ${widget.selectedItems}');
 
     final today = DateTime.now();
     _days = List.generate(5, (index) {
@@ -158,6 +166,7 @@ class _SetAddressScreenState extends State<SetAddressScreen> {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -176,6 +185,7 @@ class _SetAddressScreenState extends State<SetAddressScreen> {
             flex: 2,
             child: MapView(
               center: _selectedLatLng,
+              markerPosition: _selectedLatLng, // Tambahkan ini
               onTap: (LatLng position) {
                 setState(() {
                   _selectedLatLng = position;
@@ -184,6 +194,7 @@ class _SetAddressScreenState extends State<SetAddressScreen> {
               },
             ),
           ),
+
 
 
           // Address and time selection
@@ -333,7 +344,31 @@ class _SetAddressScreenState extends State<SetAddressScreen> {
                       height: 50,
                       child: ElevatedButton(
                         onPressed: () {
-                          // Navigate to order summary screen
+                          if (_addressController.text.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Please select a valid address from the map')),
+                            );
+                            return;
+                          }
+
+                          // Konversi selectedItems ke List<PickupItem>
+                          final List<PickupItem> pickupItems = widget.selectedItems.map((item) {
+                            return PickupItem(
+                              idDonationItem: item['id_donationitem'] ?? 0, // Gunakan 0 jika null, atau tangani dengan validasi
+                              name: item['name']?.toString() ?? 'Unknown Item',
+                              coins: item['coins'] ?? 0,
+                              quantity: item['quantity'] ?? 1,
+                            );
+                          }).toList();
+
+                          // Validasi untuk memastikan id_donationitem tidak 0
+                          if (pickupItems.any((item) => item.idDonationItem == 0)) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('One or more items have invalid donation IDs')),
+                            );
+                            return;
+                          }
+
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -341,7 +376,7 @@ class _SetAddressScreenState extends State<SetAddressScreen> {
                                 selectedDate: _getFormattedDate(),
                                 selectedTime: _getFormattedTime(),
                                 address: _addressController.text,
-                                orderItems: widget.selectedItems,
+                                orderItems: pickupItems, // Gunakan pickupItems
                               ),
                             ),
                           );

@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:revivegoods/api_url.dart';
 import 'package:revivegoods/global.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -34,6 +35,7 @@ class _LoginPageState extends State<LoginPage> {
   // Simple login function
   Future<void> _login() async {
     var urlLogin = "${ApiUrl.LoginUrl}";
+
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -54,7 +56,7 @@ class _LoginPageState extends State<LoginPage> {
         Uri.parse(urlLogin),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'email': _emailController.text,
+          'email': _emailController.text.trim(), // trim() agar spasi tidak ikut terkirim
           'password': _passwordController.text,
         }),
       );
@@ -62,7 +64,29 @@ class _LoginPageState extends State<LoginPage> {
       final responseData = jsonDecode(response.body);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        Global.access_token = responseData['token'];
+        final prefs = await SharedPreferences.getInstance();
+
+        // Simpan token ke SharedPreferences (jika ada)
+        if (responseData['token'] != null) {
+          await prefs.setString('access_token', responseData['token']);
+        }
+
+        // Simpan user_id dari response ke SharedPreferences
+        if (responseData['user'] != null && responseData['user']['id'] != null) {
+          await prefs.setInt('user_id', responseData['user']['id']);
+        } else {
+          // Kalau user_id tidak ditemukan di response, kasih info error
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('User ID not found in response'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          setState(() {
+            _isLoading = false;
+          });
+          return;
+        }
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -70,8 +94,12 @@ class _LoginPageState extends State<LoginPage> {
             backgroundColor: Colors.green,
           ),
         );
+
+        // Delay sedikit supaya user sempat lihat pesan sukses
         await Future.delayed(const Duration(seconds: 1));
+
         if (mounted) {
+          // Navigasi ke OnboardingScreen atau halaman utama aplikasi
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const OnboardingScreen()),
@@ -86,6 +114,7 @@ class _LoginPageState extends State<LoginPage> {
         );
       }
     } catch (e) {
+      print('Login error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('An error occurred. Please try again.'),
@@ -100,7 +129,6 @@ class _LoginPageState extends State<LoginPage> {
       }
     }
   }
-
 
   @override
   Widget build(BuildContext context) {

@@ -7,6 +7,7 @@ import 'package:revivegoods/api_url.dart';
 import 'package:revivegoods/providers/donation_provider.dart';
 import 'package:revivegoods/global.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DonateScreen extends StatefulWidget {
   const DonateScreen({Key? key}) : super(key: key);
@@ -24,8 +25,25 @@ class _DonateScreenState extends State<DonateScreen> {
     getDonateScreen();
   }
 
+
   Future<void> getDonateScreen() async {
     try {
+      // Load token dari SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      Global.access_token = prefs.getString('access_token') ?? '';
+
+      if (Global.access_token.isEmpty) {
+        // Kalau token kosong, kasih info error dan return
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('User not authenticated. Please login first.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Request ke API dengan token di header Authorization
       final itemdonate = await http.get(
         Uri.parse("${ApiUrl.GetItemUrl}"),
         headers: {
@@ -66,6 +84,7 @@ class _DonateScreenState extends State<DonateScreen> {
       );
     }
   }
+
 
   // Update the quantity of an item
   void _updateQuantity(BuildContext context, String item, int change) {
