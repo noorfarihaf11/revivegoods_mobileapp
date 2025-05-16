@@ -4,4 +4,5 @@ class ApiUrl {
   static String LoginUrl ="$baseUrl/login";
   static String GetItemUrl ="$baseUrl/donation";
   static String PickupRequestUrl ="$baseUrl/pickuprequest";
+  static String HistoryUrl ="$baseUrl/history";
 }

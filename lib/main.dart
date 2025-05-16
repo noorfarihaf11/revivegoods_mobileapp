@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'splash_screen.dart';
 import 'utils/app_colors.dart';
 import 'providers/donation_provider.dart';
+import 'providers/pickup_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,13 +24,15 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => DonationProvider(),  // Provide DonationProvider to the app
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => DonationProvider()),
+        ChangeNotifierProvider(create: (context) => PickupProvider()), // Provider kedua
+      ],
       child: MaterialApp(
         title: 'Revive Goods',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          // Using a simple theme configuration
           primaryColor: AppColors.primary,
           scaffoldBackgroundColor: AppColors.background,
           fontFamily: 'Poppins',
@@ -57,4 +60,5 @@ class MyApp extends StatelessWidget {
       ),
     );
   }
+
 }

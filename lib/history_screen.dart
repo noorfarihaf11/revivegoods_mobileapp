@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import 'history_detail_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:revivegoods/providers/pickup_provider.dart';
 import '../utils/app_colors.dart';
+import 'history_detail_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({Key? key}) : super(key: key);
@@ -12,57 +15,47 @@ class HistoryScreen extends StatefulWidget {
 class _HistoryScreenState extends State<HistoryScreen> {
   int _selectedTabIndex = 0;
 
-  // Sample data for history items
-  final List<Map<String, dynamic>> _ongoingItems = [
-    {
-      'id': 'ID-110805',
-      'location': 'Emerald Cluster B-1',
-      'time': '4:30 PM',
-      'date': '4th April 2025',
-      'status': 'Waiting Courier',
-    },
-    {
-      'id': 'ID-110806',
-      'location': 'Palm Gardens C-3',
-      'time': '2:15 PM',
-      'date': '5th April 2025',
-      'status': 'Processing',
-    },
-    {
-      'id': 'ID-110809',
-      'location': 'Sunset Heights A-2',
-      'time': '10:00 AM',
-      'date': '7th April 2025',
-      'status': 'Scheduled',
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    // Panggil fetchPickupData setelah frame pertama selesai
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadPickups();
+    });
+  }
 
-  final List<Map<String, dynamic>> _completedItems = [
-    {
-      'id': 'ID-110801',
-      'location': 'Maple Avenue D-4',
-      'time': '1:45 PM',
-      'date': '1st April 2025',
-      'status': 'Delivered',
-    },
-    {
-      'id': 'ID-110799',
-      'location': 'Oak Street F-2',
-      'time': '11:30 AM',
-      'date': '29th March 2025',
-      'status': 'Delivered',
-    },
-  ];
+  Future<void> _loadPickups() async {
+    try {
+      // Load token dari SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('access_token') ?? '';
+
+      if (token.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('User not authenticated. Please login first.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Panggil provider dengan token
+      final pickupProvider = Provider.of<PickupProvider>(context, listen: false);
+      await pickupProvider.fetchPickupData(token);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // appBar: AppBar(
-      //   title: const Text("History"),
-      //   backgroundColor: AppColors.primary,
-      //   foregroundColor: Colors.white,
-      //   elevation: 0,
-      // ),
       body: Column(
         children: [
           // Tab selector
@@ -84,29 +77,44 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ),
           ),
 
-          // History list
+          // History list pakai Consumer supaya rebuild saat data berubah
           Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: _selectedTabIndex == 0
-                  ? _ongoingItems.length
-                  : _completedItems.length,
-              separatorBuilder: (context, index) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                final item = _selectedTabIndex == 0
-                    ? _ongoingItems[index]
-                    : _completedItems[index];
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            HistoryDetailScreen(historyItem: item),
-                      ),
+            child: Consumer<PickupProvider>(
+              builder: (context, pickupProvider, _) {
+                final items = _selectedTabIndex == 0
+                    ? pickupProvider.ongoingItems
+                    : pickupProvider.completedItems;
+
+                if (pickupProvider.isLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (pickupProvider.errorMessage != null) {
+                  return Center(child: Text(pickupProvider.errorMessage!));
+                }
+
+                if (items.isEmpty) {
+                  return const Center(child: Text("No history found"));
+                }
+
+                return ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: items.length,
+                  separatorBuilder: (context, index) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    return GestureDetector(
+                      // onTap: () {
+                      //   Navigator.push(
+                      //     context,
+                      //     MaterialPageRoute(
+                      //       builder: (context) => HistoryDetailScreen(pickup: item),
+                      //     ),
+                      //   );
+                      // },
+                      child: _buildHistoryItem(item),
                     );
                   },
-                  child: _buildHistoryItem(item),
                 );
               },
             ),
@@ -147,9 +155,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  // Build a history item
-  Widget _buildHistoryItem(Map<String, dynamic> item) {
+  // Build a history item using PickupData object
+  Widget _buildHistoryItem(PickupData item) {
     final bool isOngoing = _selectedTabIndex == 0;
+
+    String date = _formatDate(item.scheduledAt);
+    String time = _formatTime(item.scheduledAt);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -161,14 +172,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                item['date'].split(' ')[0], // Extract day number
+                date.split(' ')[0], // misal "4" (tanggal)
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               Text(
-                item['date'].substring(item['date'].indexOf(' ') + 1), // Extract month and year
+                date.substring(date.indexOf(' ') + 1), // misal "April 2025"
                 style: const TextStyle(
                   fontSize: 14,
                   color: AppColors.textGrey,
@@ -185,7 +196,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item['id'],
+                  'Pickup #${item.idPickupReq}',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -193,14 +204,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  item['location'],
+                  item.address,
                   style: const TextStyle(
                     fontSize: 14,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  item['time'],
+                  time,
                   style: const TextStyle(
                     fontSize: 14,
                     color: AppColors.textGrey,
@@ -220,11 +231,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
-              item['status'],
+              item.status,
               style: TextStyle(
-                color: isOngoing
-                    ? AppColors.primary
-                    : Colors.green,
+                color: isOngoing ? AppColors.primary : Colors.green,
                 fontWeight: FontWeight.w500,
                 fontSize: 14,
               ),
@@ -233,5 +242,34 @@ class _HistoryScreenState extends State<HistoryScreen> {
         ],
       ),
     );
+  }
+
+  String _formatDate(String scheduledAt) {
+    try {
+      DateTime dt = DateTime.parse(scheduledAt);
+      return "${dt.day} ${_monthName(dt.month)} ${dt.year}";
+    } catch (e) {
+      return scheduledAt;
+    }
+  }
+
+  String _formatTime(String scheduledAt) {
+    try {
+      DateTime dt = DateTime.parse(scheduledAt);
+      final hour = dt.hour > 12 ? dt.hour - 12 : dt.hour == 0 ? 12 : dt.hour;
+      final ampm = dt.hour >= 12 ? "PM" : "AM";
+      final minute = dt.minute.toString().padLeft(2, '0');
+      return "$hour:$minute $ampm";
+    } catch (e) {
+      return scheduledAt;
+    }
+  }
+
+  String _monthName(int month) {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return months[month - 1];
   }
 }
