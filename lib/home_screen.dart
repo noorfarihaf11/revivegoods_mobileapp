@@ -5,14 +5,15 @@ import 'profile_screen.dart';
 import 'utils/app_colors.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  final int initialIndex;
+  const HomeScreen({super.key, this.initialIndex = 0});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
   bool _isDarkMode = false;  // Boolean to track dark mode
 
   // List of screens for the bottom navigation
@@ -31,18 +32,20 @@ class _HomeScreenState extends State<HomeScreen> {
     'Profile',
   ];
 
-  // Handle bottom navigation tap
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialIndex;
+  }
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
   }
 
-  void _toggleDarkMode() {
-    setState(() {
-      _isDarkMode = !_isDarkMode;
-    });
-  }
+  bool get isValidIndex => _selectedIndex >= 0 && _selectedIndex < _screens.length;
+
 
   @override
   Widget build(BuildContext context) {

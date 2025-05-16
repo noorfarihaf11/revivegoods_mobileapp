@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:revivegoods/models/PickupItemModel.dart';
 import 'history_screen.dart';
+import 'home_screen.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -574,9 +575,12 @@ class OrderSummaryScreen extends StatelessWidget {
                 if (!context.mounted) return;
                 Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(builder: (_) => const HistoryScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => const HomeScreen(initialIndex: 2), // 2 = History
+                  ),
                       (route) => false,
                 );
+
               } else {
                 // Jika gagal, tampilkan dialog error
                 if (!context.mounted) return;

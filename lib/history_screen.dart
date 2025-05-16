@@ -56,54 +56,63 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Tab selector
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Container(
-            height: 50,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(color: Colors.grey.shade300),
-            ),
-            child: Row(
-              children: [
-                _buildTabButton('On going', 0),
-                _buildTabButton('Complete', 1),
-              ],
+    return Scaffold(
+      // appBar: AppBar(
+      //   title: const Text("History"),
+      //   backgroundColor: AppColors.primary,
+      //   foregroundColor: Colors.white,
+      //   elevation: 0,
+      // ),
+      body: Column(
+        children: [
+          // Tab selector
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Container(
+              height: 50,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Row(
+                children: [
+                  _buildTabButton('On going', 0),
+                  _buildTabButton('Complete', 1),
+                ],
+              ),
             ),
           ),
-        ),
 
-        // History list
-        Expanded(
-          child: ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: _selectedTabIndex == 0
-                ? _ongoingItems.length
-                : _completedItems.length,
-            separatorBuilder: (context, index) => const Divider(height: 1),
-            itemBuilder: (context, index) {
-              final item = _selectedTabIndex == 0
-                  ? _ongoingItems[index]
-                  : _completedItems[index];
-              return GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => HistoryDetailScreen(historyItem: item),
-                    ),
-                  );
-                },
-                child: _buildHistoryItem(item),
-              );
-            },
+          // History list
+          Expanded(
+            child: ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: _selectedTabIndex == 0
+                  ? _ongoingItems.length
+                  : _completedItems.length,
+              separatorBuilder: (context, index) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final item = _selectedTabIndex == 0
+                    ? _ongoingItems[index]
+                    : _completedItems[index];
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            HistoryDetailScreen(historyItem: item),
+                      ),
+                    );
+                  },
+                  child: _buildHistoryItem(item),
+                );
+              },
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
