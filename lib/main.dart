@@ -5,6 +5,8 @@ import 'splash_screen.dart';
 import 'utils/app_colors.dart';
 import 'providers/donation_provider.dart';
 import 'providers/pickup_provider.dart';
+import 'providers/user_provider.dart';
+import 'package:device_preview/device_preview.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,7 +18,12 @@ void main() {
       statusBarIconBrightness: Brightness.light,
     ),
   );
-  runApp(const MyApp());
+  runApp(
+    DevicePreview(
+      enabled: !const bool.fromEnvironment('dart.vm.product'), // Enable only in debug mode
+      builder: (context) => const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -27,11 +34,14 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => DonationProvider()),
-        ChangeNotifierProvider(create: (context) => PickupProvider()), // Provider kedua
+        ChangeNotifierProvider(create: (context) => PickupProvider()),
+        ChangeNotifierProvider(create: (_) => UserProvider()),// Provider kedua
       ],
       child: MaterialApp(
         title: 'Revive Goods',
         debugShowCheckedModeBanner: false,
+        locale: DevicePreview.locale(context),
+        builder: DevicePreview.appBuilder,
         theme: ThemeData(
           primaryColor: AppColors.primary,
           scaffoldBackgroundColor: AppColors.background,

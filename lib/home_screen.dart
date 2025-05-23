@@ -3,6 +3,9 @@ import 'donate_screen.dart';
 import 'history_screen.dart';
 import 'profile_screen.dart';
 import 'utils/app_colors.dart';
+import 'package:provider/provider.dart';
+import 'package:revivegoods/providers/user_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
   final int initialIndex;
@@ -36,6 +39,36 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      // Load token dari SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('access_token') ?? '';
+
+      if (token.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('User not authenticated. Please login first.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Panggil provider dengan token
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      await userProvider.fetchUserData(token);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _onItemTapped(int index) {
@@ -221,26 +254,31 @@ class _HomeContentState extends State<HomeContent> {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'Total Coins Earned',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        '450',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
+                  Consumer<UserProvider>(
+                    builder: (context, userProvider, child) {
+                      final coins = userProvider.user?.coins ?? 0;
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Total Coins Earned',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            coins.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                   const Spacer(),
                   ElevatedButton(
