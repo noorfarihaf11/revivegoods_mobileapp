@@ -6,4 +6,5 @@ class ApiUrl {
   static String PickupRequestUrl ="$baseUrl/pickuprequest";
   static String HistoryUrl ="$baseUrl/history";
   static String HomeUrl ="$baseUrl/home";
+  static String RedeemUrl ="$baseUrl/redeem";
 }

@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'api_url.dart';
 import '../utils/app_colors.dart';
 import 'trade_success_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class TradeConfirmationScreen extends StatefulWidget {
   final Map<String, dynamic> product;
@@ -15,12 +19,78 @@ class TradeConfirmationScreen extends StatefulWidget {
 }
 
 class _TradeConfirmationScreenState extends State<TradeConfirmationScreen> {
-  int _quantity = 1;
   final int _userCoins = 450; // Current user coins
+  bool _isLoading = false;
 
-  int get _totalCost => widget.product['coins'] * _quantity;
+  int get _totalCost => (widget.product['coin_cost'] as num?)?.toInt() ?? 0;
   bool get _canAfford => _userCoins >= _totalCost;
   int get _remainingCoins => _userCoins - _totalCost;
+
+  Future<void> _confirmTrade() async {
+    if (_isLoading) return;
+
+    setState(() => _isLoading = true);
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+
+    if (token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Authentication token not found')),
+      );
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    final url = Uri.parse('http://127.0.0.1:8000/api/redeem');
+    final response = await http.post(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'id_exchangeitem': widget.product['id_exchangeitem'],
+      }),
+    );
+
+    print('Response: ${response.statusCode} - ${response.body}'); // Debug log
+
+    if (response.statusCode == 200) {
+      try {
+        final decodedResponse = jsonDecode(response.body);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TradeSuccessScreen(
+              product: widget.product,
+              totalCost: _totalCost,
+              remainingCoins: _remainingCoins,
+            ),
+          ),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invalid response format')),
+        );
+      }
+    } else if (response.statusCode == 400) {
+      try {
+        final error = jsonDecode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error['message'] ?? 'Failed to redeem')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to redeem')),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to redeem: ${response.body}')),
+      );
+    }
+    setState(() => _isLoading = false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +112,6 @@ class _TradeConfirmationScreenState extends State<TradeConfirmationScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Product details card
               Card(
                 elevation: 4,
                 shape: RoundedRectangleBorder(
@@ -56,7 +125,6 @@ class _TradeConfirmationScreenState extends State<TradeConfirmationScreen> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Product image
                           Container(
                             width: 100,
                             height: 100,
@@ -80,10 +148,7 @@ class _TradeConfirmationScreenState extends State<TradeConfirmationScreen> {
                               ),
                             ),
                           ),
-
                           const SizedBox(width: 16),
-
-                          // Product info
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -95,9 +160,7 @@ class _TradeConfirmationScreenState extends State<TradeConfirmationScreen> {
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-
                                 const SizedBox(height: 8),
-
                                 Text(
                                   widget.product['description'],
                                   style: TextStyle(
@@ -105,10 +168,7 @@ class _TradeConfirmationScreenState extends State<TradeConfirmationScreen> {
                                     color: Colors.grey[600],
                                   ),
                                 ),
-
                                 const SizedBox(height: 12),
-
-                                // Rating and reviews
                                 Row(
                                   children: [
                                     const Icon(
@@ -131,10 +191,7 @@ class _TradeConfirmationScreenState extends State<TradeConfirmationScreen> {
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 16),
-
-                      // Features
                       const Text(
                         'Features:',
                         style: TextStyle(
@@ -164,100 +221,7 @@ class _TradeConfirmationScreenState extends State<TradeConfirmationScreen> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 24),
-
-              // Quantity selector
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Quantity',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              IconButton(
-                                onPressed: _quantity > 1 ? () {
-                                  setState(() {
-                                    _quantity--;
-                                  });
-                                } : null,
-                                icon: const Icon(Icons.remove_circle_outline),
-                                color: AppColors.primary,
-                              ),
-
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey[300]!),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  _quantity.toString(),
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-
-                              IconButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _quantity++;
-                                  });
-                                },
-                                icon: const Icon(Icons.add_circle_outline),
-                                color: AppColors.primary,
-                              ),
-                            ],
-                          ),
-
-                          // Price per item
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.monetization_on,
-                                color: Colors.amber,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${widget.product['coins']} each',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Cost breakdown
               Card(
                 elevation: 4,
                 shape: RoundedRectangleBorder(
@@ -275,10 +239,7 @@ class _TradeConfirmationScreenState extends State<TradeConfirmationScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-
                       const SizedBox(height: 16),
-
-                      // Current coins
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -299,14 +260,11 @@ class _TradeConfirmationScreenState extends State<TradeConfirmationScreen> {
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 8),
-
-                      // Total cost
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Total Cost ($_quantity items):'),
+                          const Text('Total Cost:'),
                           Row(
                             children: [
                               const Icon(
@@ -323,10 +281,7 @@ class _TradeConfirmationScreenState extends State<TradeConfirmationScreen> {
                           ),
                         ],
                       ),
-
                       const Divider(height: 24),
-
-                      // Remaining coins
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -353,7 +308,6 @@ class _TradeConfirmationScreenState extends State<TradeConfirmationScreen> {
                           ),
                         ],
                       ),
-
                       if (!_canAfford) ...[
                         const SizedBox(height: 12),
                         Container(
@@ -396,26 +350,20 @@ class _TradeConfirmationScreenState extends State<TradeConfirmationScreen> {
         child: SizedBox(
           height: 56,
           child: ElevatedButton(
-            onPressed: _canAfford ? () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => TradeSuccessScreen(
-                    product: widget.product,
-                    quantity: _quantity,
-                    totalCost: _totalCost,
-                    remainingCoins: _remainingCoins,
-                  ),
-                ),
-              );
-            } : null,
+            onPressed: _canAfford && !_isLoading ? _confirmTrade : null,
             style: ElevatedButton.styleFrom(
-              backgroundColor: _canAfford ? AppColors.primary : Colors.grey,
+              backgroundColor: _canAfford && !_isLoading ? AppColors.primary : Colors.grey,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(28),
               ),
             ),
-            child: Text(
+            child: _isLoading
+                ? const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(color: Colors.white),
+            )
+                : Text(
               _canAfford ? 'Confirm Trade' : 'Insufficient Coins',
               style: const TextStyle(
                 fontSize: 18,

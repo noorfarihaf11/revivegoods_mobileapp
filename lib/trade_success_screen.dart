@@ -4,14 +4,12 @@ import '../home_screen.dart';
 
 class TradeSuccessScreen extends StatelessWidget {
   final Map<String, dynamic> product;
-  final int quantity;
   final int totalCost;
   final int remainingCoins;
 
   const TradeSuccessScreen({
     Key? key,
     required this.product,
-    required this.quantity,
     required this.totalCost,
     required this.remainingCoins,
   }) : super(key: key);
@@ -126,13 +124,6 @@ class TradeSuccessScreen extends StatelessWidget {
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                Text(
-                                  'Quantity: $quantity',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey[600],
                                   ),
                                 ),
                               ],
