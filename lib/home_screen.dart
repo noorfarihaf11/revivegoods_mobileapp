@@ -4,9 +4,14 @@ import 'history_screen.dart';
 import 'profile_screen.dart';
 import 'utils/app_colors.dart';
 import 'package:provider/provider.dart';
+import 'package:revivegoods/api_url.dart';
 import 'package:revivegoods/providers/user_provider.dart';
+import 'package:revivegoods/providers/home_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'product_detail_screen.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
 
 class HomeScreen extends StatefulWidget {
   final int initialIndex;
@@ -46,6 +51,8 @@ class _HomeScreenState extends State<HomeScreen> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('access_token') ?? '';
 
+      print('Access token: $token');
+
       if (token.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -53,18 +60,24 @@ class _HomeScreenState extends State<HomeScreen> {
             backgroundColor: Colors.red,
           ),
         );
+        Navigator.pushReplacementNamed(context, '/login');
         return;
       }
 
       final userProvider = Provider.of<UserProvider>(context, listen: false);
       await userProvider.fetchUserData(token);
+      print('User loaded: ${userProvider.user}');
     } catch (e) {
+      print('Error loading user data: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error: $e'),
           backgroundColor: Colors.red,
         ),
       );
+      if (e.toString().contains('Unauthenticated')) {
+        Navigator.pushReplacementNamed(context, '/login');
+      }
     }
   }
 
@@ -136,6 +149,13 @@ class HomeContent extends StatefulWidget {
 class _HomeContentState extends State<HomeContent> {
   int _currentCarouselIndex = 0;
 
+  @override
+  void initState() {
+    super.initState();
+    _fetchExchangeItems(); // penting agar data diambil dari API
+  }
+
+
   // Track favorite products
   final Set<String> _favoriteProducts = {};
 
@@ -154,81 +174,64 @@ class _HomeContentState extends State<HomeContent> {
     },
   ];
 
-  // Updated eco-green products with more details
-  final List<Map<String, dynamic>> _ecoProducts = [
-    {
-      'id': 'bamboo_utensil_set',
-      'name': 'Bamboo Utensil Set',
-      'logo': 'images/bamboo_utensil.jpg',
-      'coins': 250,
-      'brand': 'EcoLiving',
-      'category': 'Home & Living',
-      'description': 'Portable and reusable bamboo utensils with carrying case.',
-      'rating': 4.5,
-      'reviews': 28,
-      'isNew': true,
-    },
-    {
-      'id': 'recycled_tote',
-      'name': 'Recycled Tote Bag',
-      'logo': 'images/tote_bag.png',
-      'coins': 150,
-      'brand': 'GreenCycle',
-      'category': 'Fashion',
-      'description': 'Durable tote bag made from recycled plastic bottles.',
-      'rating': 4.8,
-      'reviews': 42,
-      'isNew': false,
-    },
-    {
-      'id': 'solar_charger',
-      'name': 'Solar Phone Charger',
-      'logo': 'images/solar_charger.png',
-      'coins': 350,
-      'brand': 'SunPower',
-      'category': 'Electronics',
-      'description': 'Portable solar-powered phone charger for eco-friendly charging.',
-      'rating': 4.2,
-      'reviews': 15,
-      'isNew': true,
-    },
-    {
-      'id': 'water_bottle',
-      'name': 'Eco-Friendly Water Bottle',
-      'logo': 'images/water_bottle.png',
-      'coins': 200,
-      'brand': 'PureEco',
-      'category': 'Home & Living',
-      'description': 'Stainless steel water bottle with bamboo cap.',
-      'rating': 4.7,
-      'reviews': 36,
-      'isNew': false,
-    },
-    {
-      'id': 'beeswax_wraps',
-      'name': 'Beeswax Food Wraps',
-      'logo': 'images/beeswax_wraps.jpg',
-      'coins': 180,
-      'brand': 'NaturalWrap',
-      'category': 'Kitchen',
-      'description': 'Reusable beeswax food wraps, plastic-free alternative to cling film.',
-      'rating': 4.6,
-      'reviews': 23,
-      'isNew': true,
-    },
-    {
-      'id': 'bamboo_toothbrush',
-      'name': 'Bamboo Toothbrushes',
-      'logo': 'images/bamboo_toothbrush.jpg',
-      'coins': 120,
-      'brand': 'EcoDental',
-      'category': 'Personal Care',
-      'description': 'Pack of 4 biodegradable bamboo toothbrushes.',
-      'rating': 4.4,
-      'reviews': 19,
-      'isNew': false,
-    },
-  ];
+  List<Map<String, dynamic>> _exchangeItems = [];
+  bool _isLoading = true;
+
+  Future<void> _fetchExchangeItems() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('access_token') ?? '';
+
+      print('Access token: $token');
+
+      if (token.isEmpty) {
+        throw Exception('No access token found. Please log in.');
+      }
+
+      final response = await http.get(
+        Uri.parse(ApiUrl.HomeUrl),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        if (jsonResponse is Map<String, dynamic> && jsonResponse.containsKey('exchange_items')) {
+          final List<dynamic> data = jsonResponse['exchange_items'];
+          setState(() {
+            _exchangeItems = data.map((item) => Map<String, dynamic>.from(item)).toList();
+            _isLoading = false;
+          });
+        } else {
+          throw Exception('Unexpected response format: Expected a JSON object with an "exchange_items" key');
+        }
+      } else if (response.statusCode == 401) {
+        throw Exception('Unauthenticated. Please log in again.');
+      } else {
+        throw Exception('Failed to fetch products: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching products: $e');
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      if (e.toString().contains('Unauthenticated')) {
+        Navigator.pushReplacementNamed(context, '/login');
+      }
+    }
+  }
+
 
   void _toggleFavorite(String productId) {
     setState(() {
@@ -389,9 +392,9 @@ class _HomeContentState extends State<HomeContent> {
                 crossAxisSpacing: 8, // Reduced from 12
                 mainAxisSpacing: 12, // Reduced from 16
               ),
-              itemCount: _ecoProducts.length,
+              itemCount: _exchangeItems.length,
               itemBuilder: (context, index) {
-                final product = _ecoProducts[index];
+                final product = _exchangeItems[index];
                 return _buildNewEcoProductCard(product);
               },
             ),
@@ -474,7 +477,7 @@ class _HomeContentState extends State<HomeContent> {
 
   // New product card design based on the reference image
   Widget _buildNewEcoProductCard(Map<String, dynamic> product) {
-    final bool isFavorite = _favoriteProducts.contains(product['id']);
+    final bool isFavorite = _favoriteProducts.contains(product['id_exchangeitem'].toString());
 
     return GestureDetector(
       onTap: () {
@@ -503,21 +506,19 @@ class _HomeContentState extends State<HomeContent> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Product image with New tag and Favorite button
             Stack(
               children: [
-                // Product image
                 ClipRRect(
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(12),
                     topRight: Radius.circular(12),
                   ),
                   child: Container(
-                    height: 100, // Reduced from 140
+                    height: 100,
                     width: double.infinity,
                     color: Colors.grey[100],
                     child: Image.asset(
-                      product['logo'],
+                      product['image'],
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return Center(
@@ -531,9 +532,7 @@ class _HomeContentState extends State<HomeContent> {
                     ),
                   ),
                 ),
-
-                // New tag
-                if (product['isNew'] == true)
+                if (product['isNew'] == true) // Keep this if your API adds isNew
                   Positioned(
                     top: 8,
                     left: 8,
@@ -553,13 +552,11 @@ class _HomeContentState extends State<HomeContent> {
                       ),
                     ),
                   ),
-
-                // Favorite button
                 Positioned(
                   top: 8,
                   right: 8,
                   child: GestureDetector(
-                    onTap: () => _toggleFavorite(product['id']),
+                    onTap: () => _toggleFavorite(product['id_exchangeitem'].toString()),
                     child: Container(
                       padding: const EdgeInsets.all(6),
                       decoration: const BoxDecoration(
@@ -576,52 +573,40 @@ class _HomeContentState extends State<HomeContent> {
                 ),
               ],
             ),
-
-            // Product details
             Padding(
-              padding: const EdgeInsets.all(8), // Reduced from 12
+              padding: const EdgeInsets.all(8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Category
                   Text(
-                    product['category'],
+                    product['category'] ?? 'Eco Product', // Fallback if category is missing
                     style: TextStyle(
-                      fontSize: 10, //reduced from 12
+                      fontSize: 10,
                       color: Colors.grey[600],
                     ),
                   ),
-
-                  const SizedBox(height: 2), //change from 4 to 2
-
-                  // Product name
+                  const SizedBox(height: 2),
                   Text(
                     product['name'],
                     style: const TextStyle(
-                      fontSize: 14, //reduced from 16
+                      fontSize: 14,
                       fontWeight: FontWeight.bold,
                       color: AppColors.textDark,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-
-                  const SizedBox(height: 2), //change from 4 to 2
-
-                  // Description
+                  const SizedBox(height: 2),
                   Text(
                     product['description'],
                     style: TextStyle(
-                      fontSize: 10, //reduced from 12
+                      fontSize: 10,
                       color: Colors.grey[600],
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-
-                  const SizedBox(height: 4), //change from 8 to 4
-
-                  // Rating
+                  const SizedBox(height: 4),
                   Row(
                     children: [
                       Expanded(
@@ -639,7 +624,7 @@ class _HomeContentState extends State<HomeContent> {
                             }),
                             const SizedBox(width: 2),
                             Text(
-                              "(${product['reviews']})",
+                              "(${product['reviews'] ?? 0})",
                               style: TextStyle(
                                 fontSize: 9,
                                 color: Colors.grey[600],
@@ -650,10 +635,7 @@ class _HomeContentState extends State<HomeContent> {
                       ),
                     ],
                   ),
-
-                  const SizedBox(height: 4), //change from 8 to 4
-
-                  // Price in coins
+                  const SizedBox(height: 4),
                   Row(
                     children: [
                       const Icon(
@@ -664,7 +646,7 @@ class _HomeContentState extends State<HomeContent> {
                       const SizedBox(width: 2),
                       Expanded(
                         child: Text(
-                          '${product['coins']}',
+                          '${product['coin_cost']}',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,

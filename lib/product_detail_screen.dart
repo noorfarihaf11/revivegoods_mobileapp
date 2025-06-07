@@ -21,9 +21,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   // Additional product images for carousel
   List<String> get _productImages => [
-    widget.product['logo'] ?? 'images/eco_placeholder.png',
-    'images/eco_detail_1.png',
-    'images/eco_detail_2.png',
+    widget.product['image'] ?? 'images/eco_placeholder.png',
   ];
 
   @override
@@ -31,13 +29,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     // Enhance product data for trade confirmation
     final completeProduct = {
       ...widget.product,
-      'id': widget.product['name'].toString().toLowerCase().replaceAll(' ', '_'),
-      'rating': 4.8,
-      'reviews': 120,
-      'inStock': true,
+      'id_exchangeitem': widget.product['id_exchangeitem'], // Preserve id_exchangeitem
+      'rating': widget.product['rating'] ?? 4.8,
+      'reviews': widget.product['reviews'] ?? 120,
+      'inStock': widget.product['stock'] > 0, // Use stock from API
       'category': _getCategoryFromProduct(widget.product['name']),
       'features': _getFeaturesFromProduct(widget.product['name']),
-      'image': widget.product['logo'], // Use logo as main image
+      'image': widget.product['image'], // Use 'image' instead of 'logo'
+      'coin_cost': widget.product['coin_cost'], // Ensure consistency with API
     };
 
     return Scaffold(
@@ -73,6 +72,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 height: 200,
                                 fit: BoxFit.contain,
                                 errorBuilder: (context, error, stackTrace) {
+                                  print('Error loading image ${_productImages[index]}: $error');
                                   return Container(
                                     height: 200,
                                     decoration: BoxDecoration(
@@ -149,7 +149,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                widget.product['brand'],
+                                widget.product['brand'] ?? 'Eco Brand', // Fallback for brand
                                 style: TextStyle(
                                   fontSize: 16,
                                   color: Colors.grey[600],
@@ -176,7 +176,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                '4.8',
+                                '${completeProduct['rating']}',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: Colors.amber[800],
@@ -184,7 +184,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                '(120)',
+                                '(${completeProduct['reviews']})',
                                 style: TextStyle(
                                   color: Colors.grey[600],
                                   fontSize: 12,
@@ -224,7 +224,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 ),
                               ),
                               Text(
-                                '${widget.product['coins']} Coins',
+                                '${widget.product['coin_cost']} Coins', // Use coin_cost
                                 style: const TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold,
@@ -237,7 +237,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           Consumer<UserProvider>(
                             builder: (context, userProvider, child) {
                               final userCoins = userProvider.user?.coins ?? 0;
-                              final canAfford = userCoins >= widget.product['coins'];
+                              final canAfford = userCoins >= widget.product['coin_cost'];
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
@@ -491,7 +491,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         child: Consumer<UserProvider>(
           builder: (context, userProvider, child) {
             final userCoins = userProvider.user?.coins ?? 0;
-            final canAfford = userCoins >= widget.product['coins'];
+            final canAfford = userCoins >= widget.product['coin_cost'];
 
             return SizedBox(
               height: 56,
