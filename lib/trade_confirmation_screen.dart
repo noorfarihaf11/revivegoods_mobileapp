@@ -19,7 +19,36 @@ class TradeConfirmationScreen extends StatefulWidget {
 }
 
 class _TradeConfirmationScreenState extends State<TradeConfirmationScreen> {
-  final int _userCoins = 450; // Current user coins
+  int _userCoins = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserCoins();
+  }
+
+
+  Future<void> _loadUserCoins() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+
+    if (token == null) return;
+
+    final response = await http.get(
+      Uri.parse('http://127.0.0.1:8000/api/home'), // Sesuaikan URL-nya
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      setState(() {
+        _userCoins = data['user']['coins'] ?? 0; // Sesuaikan dengan struktur JSON kamu
+      });
+    }
+  }
+
   bool _isLoading = false;
 
   int get _totalCost => (widget.product['coin_cost'] as num?)?.toInt() ?? 0;

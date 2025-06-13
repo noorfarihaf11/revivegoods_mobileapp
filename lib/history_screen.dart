@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:revivegoods/providers/exchange_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:revivegoods/providers/pickup_provider.dart';
 import '../utils/app_colors.dart';
 import 'history_detail_screen.dart';
+import 'models/ExchangeRequest.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({Key? key}) : super(key: key);
@@ -21,8 +23,39 @@ class _HistoryScreenState extends State<HistoryScreen> {
     // Panggil fetchPickupData setelah frame pertama selesai
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadPickups();
+      _loadExchange();
     });
   }
+
+  Future<void> _loadExchange() async {
+    try {
+      // Load token dari SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('access_token') ?? '';
+
+      if (token.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('User not authenticated. Please login first.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Panggil provider dengan token
+      final exchangeProvider = Provider.of<ExchangeProvider>(context, listen: false);
+      await exchangeProvider.fetchExchangeRequests(token);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
 
   Future<void> _loadPickups() async {
     try {
@@ -70,8 +103,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ),
               child: Row(
                 children: [
-                  _buildTabButton('On going', 0),
-                  _buildTabButton('Complete', 1),
+                  _buildTabButton('Donation', 0),
+                  _buildTabButton('Trade', 1),
                 ],
               ),
             ),
@@ -79,41 +112,39 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
           // History list pakai Consumer supaya rebuild saat data berubah
           Expanded(
-            child: Consumer<PickupProvider>(
+            child: _selectedTabIndex == 0
+                ? Consumer<PickupProvider>(
               builder: (context, pickupProvider, _) {
-                final items = _selectedTabIndex == 0
-                    ? pickupProvider.ongoingItems
-                    : pickupProvider.completedItems;
+                final items = pickupProvider.pickupData;
 
-                if (pickupProvider.isLoading) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+                if (pickupProvider.isLoading) return const Center(child: CircularProgressIndicator());
+                if (pickupProvider.errorMessage != null) return Center(child: Text(pickupProvider.errorMessage!));
+                if (items.isEmpty) return const Center(child: Text("No donation history found"));
 
-                if (pickupProvider.errorMessage != null) {
-                  return Center(child: Text(pickupProvider.errorMessage!));
-                }
-
-                if (items.isEmpty) {
-                  return const Center(child: Text("No history found"));
-                }
-
-                return ListView.separated(
-                  padding: const EdgeInsets.all(16),
+                return ListView.builder(
                   itemCount: items.length,
-                  separatorBuilder: (context, index) => const Divider(height: 1),
+                  padding: const EdgeInsets.all(16),
                   itemBuilder: (context, index) {
                     final item = items[index];
-                    return GestureDetector(
-                      // onTap: () {
-                      //   Navigator.push(
-                      //     context,
-                      //     MaterialPageRoute(
-                      //       builder: (context) => HistoryDetailScreen(pickup: item),
-                      //     ),
-                      //   );
-                      // },
-                      child: _buildHistoryItem(item),
-                    );
+                    return _buildHistoryItem(item);
+                  },
+                );
+              },
+            )
+                : Consumer<ExchangeProvider>(
+              builder: (context, exchangeProvider, _) {
+                final items = exchangeProvider.requests;
+
+                if (exchangeProvider.isLoading) return const Center(child: CircularProgressIndicator());
+                if (exchangeProvider.errorMessage != null) return Center(child: Text(exchangeProvider.errorMessage!));
+                if (items.isEmpty) return const Center(child: Text("No trade history found"));
+
+                return ListView.builder(
+                  itemCount: items.length,
+                  padding: const EdgeInsets.all(16),
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    return _buildTradeItem(item);
                   },
                 );
               },
@@ -123,6 +154,55 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ),
     );
   }
+
+  Widget _buildTradeItem(ExchangeRequest item) {
+    DateTime dt = DateTime.parse(item.requestedAt);
+    String date = "${dt.day} ${_monthName(dt.month)} ${dt.year}";
+    String time = _formatTime(item.requestedAt);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Row(
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("${dt.day}", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text("${_monthName(dt.month)} ${dt.year}", style: const TextStyle(color: AppColors.textGrey)),
+            ],
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(item.itemName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                if (item.address != null && item.address!.isNotEmpty) ...[
+                  Text(item.address!, style: const TextStyle(fontSize: 14)),
+                  const SizedBox(height: 4),
+                ],
+                Text(time, style: const TextStyle(color: AppColors.textGrey)),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.orange.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(
+              item.status,
+              style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.w500, fontSize: 14),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
 
   // Build a tab button
   Widget _buildTabButton(String title, int index) {

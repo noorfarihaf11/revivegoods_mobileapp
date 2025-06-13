@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:revivegoods/providers/exchange_provider.dart';
 import 'package:revivegoods/providers/home_provider.dart';
 import 'splash_screen.dart';
 import 'utils/app_colors.dart';
@@ -38,6 +39,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (context) => PickupProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => HomeDataProvider()),
+        ChangeNotifierProvider(create: (_) => ExchangeProvider()),
       ],
       child: MaterialApp(
         title: 'Revive Goods',

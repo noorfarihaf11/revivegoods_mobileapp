@@ -32,12 +32,6 @@ class PickupProvider with ChangeNotifier {
 
   List<PickupData> get pickupData => _pickupData;
 
-  // Properti untuk tab Ongoing dan Complete
-  List<PickupData> get ongoingItems =>
-      _pickupData.where((item) => item.status.toLowerCase() != 'completed').toList();
-  List<PickupData> get completedItems =>
-      _pickupData.where((item) => item.status.toLowerCase() == 'completed').toList();
-
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 

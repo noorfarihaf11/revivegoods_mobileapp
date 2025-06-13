@@ -6,7 +6,6 @@ import 'utils/app_colors.dart';
 import 'package:provider/provider.dart';
 import 'package:revivegoods/api_url.dart';
 import 'package:revivegoods/providers/user_provider.dart';
-import 'package:revivegoods/providers/home_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'product_detail_screen.dart';
 import 'package:http/http.dart' as http;
