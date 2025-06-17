@@ -35,7 +35,7 @@ class _TradeConfirmationScreenState extends State<TradeConfirmationScreen> {
     if (token == null) return;
 
     final response = await http.get(
-      Uri.parse('http://127.0.0.1:8000/api/home'), // Sesuaikan URL-nya
+      Uri.parse("${ApiUrl.HomeUrl}"),// Sesuaikan URL-nya
       headers: {
         'Authorization': 'Bearer $token',
       },
@@ -70,7 +70,7 @@ class _TradeConfirmationScreenState extends State<TradeConfirmationScreen> {
       return;
     }
 
-    final url = Uri.parse('http://127.0.0.1:8000/api/redeem');
+    final url = Uri.parse("${ApiUrl.RedeemUrl}");
     final response = await http.post(
       url,
       headers: {

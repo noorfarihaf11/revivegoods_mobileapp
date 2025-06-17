@@ -11,8 +11,8 @@ import 'models/PickupRequestModel.dart';
 
 
 class OrderSummaryScreen extends StatelessWidget {
-  final String selectedDate;
-  final String selectedTime;
+  final DateTime selectedDate;   // DateTime, bukan String
+  final TimeOfDay selectedTime;  // TimeOfDay, bukan String
   final String address;
   final List<PickupItem> orderItems;
 
@@ -60,15 +60,17 @@ class OrderSummaryScreen extends StatelessWidget {
         return false;
       }
 
-      String dateTimeString = '$selectedDate $selectedTime';
-      dateTimeString = dateTimeString.split(' at ')[0];
-      dateTimeString = dateTimeString.replaceAll('SAT', 'Sat').replaceAll('SUN', 'Sun').replaceAll('MON', 'Mon').replaceAll('TUE', 'Tue').replaceAll('WED', 'Wed').replaceAll('THU', 'Thu').replaceAll('FRI', 'Fri');
-      dateTimeString = dateTimeString.replaceAll(RegExp(r'(st|nd|rd|th)'), '');
+      final DateTime combinedDateTime = DateTime(
+        selectedDate.year,
+        selectedDate.month,
+        selectedDate.day,
+        selectedTime.hour,
+        selectedTime.minute,
+      );
 
-      final DateFormat inputFormat = DateFormat('EEE, d MMMM y hh:mm a', 'en_US');
-      final DateTime parsedDate = inputFormat.parse(dateTimeString);
-      final String scheduledAt = DateFormat('yyyy-MM-dd HH:mm:ss').format(parsedDate);
-      print('Scheduled At: $scheduledAt');
+// SIMPAN DALAM UTC (aman untuk kolom timestamp)
+      final String scheduledAt = DateFormat('yyyy-MM-dd HH:mm:ss')
+          .format(combinedDateTime.toUtc());
 
       // Validasi id_donationitem
       for (var item in orderItems) {
@@ -122,8 +124,14 @@ class OrderSummaryScreen extends StatelessWidget {
   }
 
 
+
+
   @override
   Widget build(BuildContext context) {
+    final String formattedDate =
+    DateFormat('EEEE, d MMMM y', 'en_US').format(selectedDate); // contoh: Friday, 20 June 2025
+
+    final String formattedTime = selectedTime.format(context); // contoh: 2:30 PM
     final theme = Theme.of(context);
 
     // Generate a random order ID
@@ -198,7 +206,7 @@ class OrderSummaryScreen extends StatelessWidget {
                                   ),
                                 ),
                                 Text(
-                                  selectedDate,
+                                  formattedDate,
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w500,
@@ -233,7 +241,7 @@ class OrderSummaryScreen extends StatelessWidget {
                                   ),
                                 ),
                                 Text(
-                                  selectedTime,
+                                  formattedTime,
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w500,

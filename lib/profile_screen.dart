@@ -60,18 +60,6 @@ class ProfileScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                // Edit profile button
-                ElevatedButton(
-                  onPressed: () {
-                    // Navigate to edit profile
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: AppColors.primary,
-                    side: BorderSide(color: AppColors.primary),
-                  ),
-                  child: const Text('Edit Profile'),
-                ),
               ],
             ),
           ),

@@ -30,7 +30,7 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   void _signUp() async {
-    var urlSignup = "${ApiUrl.SignUpUrl}";
+    var urlSignup = ApiUrl.SignUpUrl;
     if (_passwordController.text != _confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -49,7 +49,10 @@ class _RegisterPageState extends State<RegisterPage> {
       print('Sending request...');
       final response = await http.post(
         Uri.parse(urlSignup),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
         body: jsonEncode({
           'name': _nameController.text,
           'email': _emailController.text,

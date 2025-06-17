@@ -373,10 +373,10 @@ class _SetAddressScreenState extends State<SetAddressScreen> {
                             context,
                             MaterialPageRoute(
                               builder: (context) => OrderSummaryScreen(
-                                selectedDate: _getFormattedDate(),
-                                selectedTime: _getFormattedTime(),
+                                selectedDate: (_days[_selectedDay]['fullDate'] as DateTime), // DateTime
+                                selectedTime: _selectedTime,                                 // TimeOfDay
                                 address: _addressController.text,
-                                orderItems: pickupItems, // Gunakan pickupItems
+                                orderItems: pickupItems,
                               ),
                             ),
                           );

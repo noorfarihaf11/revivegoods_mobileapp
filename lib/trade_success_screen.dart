@@ -256,7 +256,13 @@ class TradeSuccessScreen extends StatelessWidget {
                     height: 50,
                     child: OutlinedButton(
                       onPressed: () {
-                        // Navigate to order tracking or history
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const HomeScreen(initialIndex: 2), // tab History
+                          ),
+                              (route) => false,
+                        );
                       },
                       style: OutlinedButton.styleFrom(
                         side: BorderSide(color: AppColors.primary),

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../models/ExchangeRequest.dart';
+import 'package:revivegoods/api_url.dart';
 
 class ExchangeProvider with ChangeNotifier {
   List<ExchangeRequest> _requests = [];
@@ -15,11 +16,9 @@ class ExchangeProvider with ChangeNotifier {
     errorMessage = null;
     notifyListeners();
 
-    final url = Uri.parse('http://127.0.0.1:8000/api/exchange');
-
     try {
       final response = await http.get(
-        url,
+        Uri.parse("${ApiUrl.ExchangeUrl}"),
         headers: {'Authorization': 'Bearer $token'},
       );
 

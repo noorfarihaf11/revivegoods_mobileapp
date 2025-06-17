@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:revivegoods/api_url.dart';
 
 class PickupData {
   final int idPickupReq;
@@ -42,7 +43,7 @@ class PickupProvider with ChangeNotifier {
 
     try {
       final response = await http.get(
-        Uri.parse('http://127.0.0.1:8000/api/history'), // Ganti dengan endpoint API Anda
+        Uri.parse("${ApiUrl.HistoryUrl}"), // Sudah ditutup dengan benar di sini
         headers: {
           'Authorization': 'Bearer $token',
           'Accept': 'application/json',
