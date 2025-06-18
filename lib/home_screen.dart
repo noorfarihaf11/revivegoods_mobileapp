@@ -387,7 +387,7 @@ class _HomeContentState extends State<HomeContent> {
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                childAspectRatio: 0.85, // Changed from 0.75 to 0.85 for more compact cards
+                childAspectRatio: 0.78, // Changed from 0.75 to 0.85 for more compact cards
                 crossAxisSpacing: 8, // Reduced from 12
                 mainAxisSpacing: 12, // Reduced from 16
               ),
@@ -531,7 +531,7 @@ class _HomeContentState extends State<HomeContent> {
                     ),
                   ),
                 ),
-                if (product['isNew'] == true) // Keep this if your API adds isNew
+                if (product['isNew'] == true)
                   Positioned(
                     top: 8,
                     left: 8,
@@ -572,91 +572,74 @@ class _HomeContentState extends State<HomeContent> {
                 ),
               ],
             ),
-            Padding(
-              padding: const EdgeInsets.all(8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    product['category'] ?? 'Eco Product', // Fallback if category is missing
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.grey[600],
+            Expanded( // Inilah kunci agar tidak overflow
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      product['category'] ?? 'Eco Product',
+                      style: TextStyle(fontSize: 10, color: Colors.grey[600]),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    product['name'],
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textDark,
+                    const SizedBox(height: 2),
+                    Text(
+                      product['name'],
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textDark,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    product['description'],
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.grey[600],
+                    const SizedBox(height: 2),
+                    Text(
+                      product['description'],
+                      style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Row(
-                          children: [
-                            ...List.generate(5, (index) {
-                              final double rating = product['rating'] ?? 0;
-                              if (index < rating.floor()) {
-                                return const Icon(Icons.star, color: Colors.amber, size: 14);
-                              } else if (index < rating.ceil() && rating.floor() != rating.ceil()) {
-                                return const Icon(Icons.star_half, color: Colors.amber, size: 14);
-                              } else {
-                                return const Icon(Icons.star_border, color: Colors.amber, size: 14);
-                              }
-                            }),
-                            const SizedBox(width: 2),
-                            Text(
-                              "(${product['reviews'] ?? 0})",
-                              style: TextStyle(
-                                fontSize: 9,
-                                color: Colors.grey[600],
-                              ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        ...List.generate(5, (index) {
+                          final double rating = product['rating'] ?? 0;
+                          if (index < rating.floor()) {
+                            return const Icon(Icons.star, color: Colors.amber, size: 14);
+                          } else if (index < rating.ceil() && rating.floor() != rating.ceil()) {
+                            return const Icon(Icons.star_half, color: Colors.amber, size: 14);
+                          } else {
+                            return const Icon(Icons.star_border, color: Colors.amber, size: 14);
+                          }
+                        }),
+                        const SizedBox(width: 2),
+                        Text(
+                          "(${product['reviews'] ?? 0})",
+                          style: TextStyle(fontSize: 9, color: Colors.grey[600]),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.monetization_on, color: Colors.amber, size: 18),
+                        const SizedBox(width: 2),
+                        Expanded(
+                          child: Text(
+                            '${product['coin_cost']}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orange,
                             ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.monetization_on,
-                        color: Colors.amber,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 2),
-                      Expanded(
-                        child: Text(
-                          '${product['coin_cost']}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.orange,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ],

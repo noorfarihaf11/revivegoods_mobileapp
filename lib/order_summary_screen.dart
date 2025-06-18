@@ -68,13 +68,13 @@ class OrderSummaryScreen extends StatelessWidget {
         selectedTime.minute,
       );
 
-// SIMPAN DALAM UTC (aman untuk kolom timestamp)
-      final String scheduledAt = DateFormat('yyyy-MM-dd HH:mm:ss')
-          .format(combinedDateTime.toUtc());
+      // Gunakan waktu lokal (WIB) tanpa konversi ke UTC
+      final String scheduledAt = DateFormat('yyyy-MM-dd HH:mm:ss').format(combinedDateTime);
+      print('Scheduled At (formatted): $scheduledAt');
 
       // Validasi id_donationitem
       for (var item in orderItems) {
-        if (item.idDonationItem <= 0) { // Validasi ID positif
+        if (item.idDonationItem <= 0) {
           print('Error: Invalid id_donationitem for item: ${item.name}');
           return false;
         }
@@ -110,8 +110,8 @@ class OrderSummaryScreen extends StatelessWidget {
         print('Pickup request submitted successfully: ${responseData['message']}');
         return true;
       } else {
-        print('Failed to submit pickup request: ${response.statusCode}');
-        print('Response body: ${response.body}');
+        final responseData = json.decode(response.body);
+        print('Error message from server: ${responseData['message'] ?? 'No message provided'}');
         return false;
       }
     } catch (e) {
@@ -122,9 +122,6 @@ class OrderSummaryScreen extends StatelessWidget {
       return false;
     }
   }
-
-
-
 
   @override
   Widget build(BuildContext context) {

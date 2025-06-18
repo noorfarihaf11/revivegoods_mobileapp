@@ -8,12 +8,14 @@ class PickupData {
   final String scheduledAt;
   final String address;
   final String status;
+  final String totalCoins;
 
   PickupData({
     required this.idPickupReq,
     required this.scheduledAt,
     required this.address,
     required this.status,
+    required this.totalCoins,
   });
 
   factory PickupData.fromJson(Map<String, dynamic> json) {
@@ -22,6 +24,7 @@ class PickupData {
       scheduledAt: json['scheduled_at'],
       address: json['address'],
       status: json['status'],
+      totalCoins: json['total_coins'].toString(),
     );
   }
 }
@@ -32,9 +35,35 @@ class PickupProvider with ChangeNotifier {
   String? _errorMessage;
 
   List<PickupData> get pickupData => _pickupData;
-
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+
+  // ✅ Add totalCoins getter to calculate total coins from all pickups
+  int get totalCoins {
+    return totalCoins;
+  }
+
+  // ✅ Get coins for a specific pickup
+  int getCoinsForPickup(int pickupId) {
+    try {
+      final pickup = _pickupData.firstWhere(
+            (p) => p.idPickupReq == pickupId,
+      );
+      return int.tryParse(pickup.totalCoins) ?? 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  // ✅ Get total coins by status
+  int getCoinsByStatus(String status) {
+    int total = 0;
+    for (var pickup in _pickupData.where((p) => p.status == status)) {
+      int coins = int.tryParse(pickup.totalCoins) ?? 0;
+      total += coins;
+    }
+    return total;
+  }
 
   Future<void> fetchPickupData(String token) async {
     _isLoading = true;
@@ -43,7 +72,7 @@ class PickupProvider with ChangeNotifier {
 
     try {
       final response = await http.get(
-        Uri.parse("${ApiUrl.HistoryUrl}"), // Sudah ditutup dengan benar di sini
+        Uri.parse("${ApiUrl.HistoryUrl}"),
         headers: {
           'Authorization': 'Bearer $token',
           'Accept': 'application/json',

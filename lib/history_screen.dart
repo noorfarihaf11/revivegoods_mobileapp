@@ -6,6 +6,7 @@ import 'package:revivegoods/providers/pickup_provider.dart';
 import '../utils/app_colors.dart';
 import 'history_detail_screen.dart';
 import 'models/ExchangeRequest.dart';
+import 'models/PickupRequestModel.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({Key? key}) : super(key: key);
@@ -44,18 +45,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
       }
 
       // Panggil provider dengan token
-      final exchangeProvider = Provider.of<ExchangeProvider>(context, listen: false);
+      final exchangeProvider = Provider.of<ExchangeProvider>(
+        context,
+        listen: false,
+      );
       await exchangeProvider.fetchExchangeRequests(token);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
     }
   }
-
 
   Future<void> _loadPickups() async {
     try {
@@ -74,14 +74,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
       }
 
       // Panggil provider dengan token
-      final pickupProvider = Provider.of<PickupProvider>(context, listen: false);
+      final pickupProvider = Provider.of<PickupProvider>(
+        context,
+        listen: false,
+      );
       await pickupProvider.fetchPickupData(token);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
     }
   }
@@ -93,7 +93,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         children: [
           // Tab selector
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            padding: const EdgeInsets.all(16.0),
             child: Container(
               height: 50,
               decoration: BoxDecoration(
@@ -112,43 +112,62 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
           // History list pakai Consumer supaya rebuild saat data berubah
           Expanded(
-            child: _selectedTabIndex == 0
-                ? Consumer<PickupProvider>(
-              builder: (context, pickupProvider, _) {
-                final items = pickupProvider.pickupData;
+            child:
+                _selectedTabIndex == 0
+                    ? Consumer<PickupProvider>(
+                      builder: (context, pickupProvider, _) {
+                        final items = pickupProvider.pickupData;
 
-                if (pickupProvider.isLoading) return const Center(child: CircularProgressIndicator());
-                if (pickupProvider.errorMessage != null) return Center(child: Text(pickupProvider.errorMessage!));
-                if (items.isEmpty) return const Center(child: Text("No donation history found"));
+                        if (pickupProvider.isLoading)
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        if (pickupProvider.errorMessage != null)
+                          return Center(
+                            child: Text(pickupProvider.errorMessage!),
+                          );
+                        if (items.isEmpty)
+                          return const Center(
+                            child: Text("No donation history found"),
+                          );
 
-                return ListView.builder(
-                  itemCount: items.length,
-                  padding: const EdgeInsets.all(16),
-                  itemBuilder: (context, index) {
-                    final item = items[index];
-                    return _buildHistoryItem(item);
-                  },
-                );
-              },
-            )
-                : Consumer<ExchangeProvider>(
-              builder: (context, exchangeProvider, _) {
-                final items = exchangeProvider.requests;
+                        return ListView.builder(
+                          itemCount: items.length,
+                          padding: const EdgeInsets.all(16),
+                          itemBuilder: (context, index) {
+                            final item = items[index];
+                            return _buildHistoryItem(item, pickupProvider);
+                          },
+                        );
+                      },
+                    )
+                    : Consumer<ExchangeProvider>(
+                      builder: (context, exchangeProvider, _) {
+                        final items = exchangeProvider.requests;
 
-                if (exchangeProvider.isLoading) return const Center(child: CircularProgressIndicator());
-                if (exchangeProvider.errorMessage != null) return Center(child: Text(exchangeProvider.errorMessage!));
-                if (items.isEmpty) return const Center(child: Text("No trade history found"));
+                        if (exchangeProvider.isLoading)
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        if (exchangeProvider.errorMessage != null)
+                          return Center(
+                            child: Text(exchangeProvider.errorMessage!),
+                          );
+                        if (items.isEmpty)
+                          return const Center(
+                            child: Text("No trade history found"),
+                          );
 
-                return ListView.builder(
-                  itemCount: items.length,
-                  padding: const EdgeInsets.all(16),
-                  itemBuilder: (context, index) {
-                    final item = items[index];
-                    return _buildTradeItem(item);
-                  },
-                );
-              },
-            ),
+                        return ListView.builder(
+                          itemCount: items.length,
+                          padding: const EdgeInsets.all(16),
+                          itemBuilder: (context, index) {
+                            final item = items[index];
+                            return _buildTradeItem(item);
+                          },
+                        );
+                      },
+                    ),
           ),
         ],
       ),
@@ -160,15 +179,36 @@ class _HistoryScreenState extends State<HistoryScreen> {
     String date = "${dt.day} ${_monthName(dt.month)} ${dt.year}";
     String time = _formatTime(item.requestedAt);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Row(
         children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("${dt.day}", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              Text("${_monthName(dt.month)} ${dt.year}", style: const TextStyle(color: AppColors.textGrey)),
+              Text(
+                "${dt.day}",
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                "${_monthName(dt.month)} ${dt.year}",
+                style: const TextStyle(color: AppColors.textGrey),
+              ),
             ],
           ),
           const SizedBox(width: 16),
@@ -176,13 +216,40 @@ class _HistoryScreenState extends State<HistoryScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item.itemName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                Text(
+                  item.itemName,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 4),
                 if (item.address != null && item.address!.isNotEmpty) ...[
                   Text(item.address!, style: const TextStyle(fontSize: 14)),
                   const SizedBox(height: 4),
                 ],
-                Text(time, style: const TextStyle(color: AppColors.textGrey)),
+                Row(
+                  children: [
+                    Text(
+                      time,
+                      style: const TextStyle(color: AppColors.textGrey),
+                    ),
+                    const Spacer(),
+                    const Icon(
+                      Icons.monetization_on,
+                      size: 16,
+                      color: Colors.orange,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${item.totalCoins ?? 0}',
+                      style: const TextStyle(
+                        color: Colors.orange,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -194,15 +261,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ),
             child: Text(
               item.status,
-              style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.w500, fontSize: 14),
+              style: const TextStyle(
+                color: Colors.orange,
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+              ),
             ),
           ),
         ],
       ),
     );
   }
-
-
 
   // Build a tab button
   Widget _buildTabButton(String title, int index) {
@@ -236,14 +305,26 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   // Build a history item using PickupData object
-  Widget _buildHistoryItem(PickupData item) {
+  Widget _buildHistoryItem(PickupData item, PickupProvider pickupProvider) {
     final bool isOngoing = _selectedTabIndex == 0;
 
     String date = _formatDate(item.scheduledAt);
     String time = _formatTime(item.scheduledAt);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -260,10 +341,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ),
               Text(
                 date.substring(date.indexOf(' ') + 1), // misal "April 2025"
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textGrey,
-                ),
+                style: const TextStyle(fontSize: 14, color: AppColors.textGrey),
               ),
             ],
           ),
@@ -283,19 +361,32 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  item.address,
-                  style: const TextStyle(
-                    fontSize: 14,
-                  ),
-                ),
+                Text(item.address, style: const TextStyle(fontSize: 14)),
                 const SizedBox(height: 4),
-                Text(
-                  time,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textGrey,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      time,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppColors.textGrey,
+                      ),
+                    ),
+                    const Spacer(),
+                    const Icon(
+                      Icons.monetization_on,
+                      size: 16,
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '+${item.totalCoins ?? 0}',
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -305,9 +396,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: isOngoing
-                  ? AppColors.primary.withOpacity(0.1)
-                  : Colors.green.withOpacity(0.1),
+              color:
+                  isOngoing
+                      ? AppColors.primary.withOpacity(0.1)
+                      : Colors.green.withOpacity(0.1),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
@@ -333,22 +425,34 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
   }
 
-  String _formatTime(String scheduledAt) {
-    try {
-      DateTime dt = DateTime.parse(scheduledAt);
-      final hour = dt.hour > 12 ? dt.hour - 12 : dt.hour == 0 ? 12 : dt.hour;
-      final ampm = dt.hour >= 12 ? "PM" : "AM";
-      final minute = dt.minute.toString().padLeft(2, '0');
-      return "$hour:$minute $ampm";
-    } catch (e) {
-      return scheduledAt;
-    }
+ String _formatTime(String scheduledAt) {
+  try {
+    // Parse dan konversi waktu ke zona lokal
+    DateTime dt = DateTime.parse(scheduledAt).toLocal(); // Tambahkan toLocal()
+    final hour = dt.hour > 12 ? dt.hour - 12 : dt.hour == 0 ? 12 : dt.hour;
+    final ampm = dt.hour >= 12 ? "PM" : "AM";
+    final minute = dt.minute.toString().padLeft(2, '0');
+    return "$hour:$minute $ampm";
+  } catch (e) {
+    print('Error parsing time: $e');
+    return scheduledAt; // Kembalikan string asli jika gagal
   }
+}
 
   String _monthName(int month) {
     const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     return months[month - 1];
   }

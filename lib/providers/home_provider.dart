@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:revivegoods/api_url.dart';
+
 
 import 'package:revivegoods/models/HomeDataModel.dart';
 import 'package:revivegoods/models/ExchangeItemModel.dart';
@@ -25,7 +27,7 @@ class HomeDataProvider with ChangeNotifier {
 
     try {
       final response = await http.get(
-        Uri.parse('http://127.0.0.1:8000/api/home'),
+        Uri.parse("${ApiUrl.HomeUrl}"),
         headers: {
           'Authorization': 'Bearer $token',
           'Accept': 'application/json',

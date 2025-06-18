@@ -20,12 +20,7 @@ void main() {
       statusBarIconBrightness: Brightness.light,
     ),
   );
-  runApp(
-    DevicePreview(
-      enabled: !const bool.fromEnvironment('dart.vm.product'), // Enable only in debug mode
-      builder: (context) => const MyApp(),
-    ),
-  );
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -44,8 +39,6 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Revive Goods',
         debugShowCheckedModeBanner: false,
-        locale: DevicePreview.locale(context),
-        builder: DevicePreview.appBuilder,
         theme: ThemeData(
           primaryColor: AppColors.primary,
           scaffoldBackgroundColor: AppColors.background,

@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
 import 'splash_screen.dart';
+import 'package:provider/provider.dart';
+import '../providers/user_provider.dart'; // Pastikan path sesuai
+
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+
+    final user = Provider.of<UserProvider>(context).user;
+
     return SingleChildScrollView(
       child: Column(
         children: [
@@ -27,34 +33,18 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 // User name
-                const Text(
-                  'Noor Fariha',
-                  style: TextStyle(
+                Text(
+                  user?.name ?? 'Loading...',
+                  style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 4),
-                // Location
-                const Text(
-                  'New York, USA',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textGrey,
-                  ),
-                ),
                 const SizedBox(height: 8),
                 // Contact info
-                const Text(
-                  'noorfarihaf@gmail.com',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textGrey,
-                  ),
-                ),
-                const Text(
-                  '0819 2783 3334',
-                  style: TextStyle(
+                Text(
+                  user?.email ?? '',
+                  style: const TextStyle(
                     fontSize: 14,
                     color: AppColors.textGrey,
                   ),
@@ -79,36 +69,6 @@ class ProfileScreen extends StatelessWidget {
                 ),
 
                 const SizedBox(width: 20),
-
-                // Right side - Donated items
-                Expanded(
-                  flex: 1,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Your donated items',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          _buildDonationTag('Clothes'),
-                          _buildDonationTag('Books'),
-                          _buildDonationTag('Toys'),
-                          _buildDonationTag('Electronics'),
-                          _buildDonationTag('Paper'),
-                          _buildDonationTag('Mobile'),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
               ],
             ),
           ),
@@ -148,6 +108,8 @@ class ProfileScreen extends StatelessWidget {
 
   // Build stats timeline
   Widget _buildStatsTimeline(BuildContext context) {
+    final user = Provider.of<UserProvider>(context).user;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -159,8 +121,8 @@ class ProfileScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        Container(
-          height: 200,
+        SizedBox(
+          height: 50,
           child: Stack(
             children: [
               // Vertical line
@@ -173,17 +135,14 @@ class ProfileScreen extends StatelessWidget {
                   color: Colors.grey.withOpacity(0.3),
                 ),
               ),
-
-              // Stats items
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _buildStatItem(context, 'Donations done', '15'),
-                  _buildStatItem(context, 'Reward Points', '250'),
-                  _buildStatItem(context, 'Coupons used', '5'),
-                  _buildStatItem(context, 'Referred', '11'),
-                ],
+              // Stats item
+              Align(
+                alignment: Alignment.topLeft,
+                child: _buildStatItem(
+                  context,
+                  'Reward Points',
+                  user?.coins.toString() ?? '0',
+                ),
               ),
             ],
           ),
@@ -191,6 +150,7 @@ class ProfileScreen extends StatelessWidget {
       ],
     );
   }
+
 
   // Build stat item
   Widget _buildStatItem(BuildContext context, String label, String value) {

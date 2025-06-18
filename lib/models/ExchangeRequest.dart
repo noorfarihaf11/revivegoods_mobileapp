@@ -22,4 +22,6 @@ class ExchangeRequest {
       address: json['address'],
     );
   }
+
+  get totalCoins => null;
 }

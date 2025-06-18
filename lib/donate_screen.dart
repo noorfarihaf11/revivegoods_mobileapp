@@ -247,12 +247,17 @@ class _DonateScreenState extends State<DonateScreen> {
               : const Icon(Icons.image),
           // Menampilkan ikon jika URL gambar kosong
           const SizedBox(width: 16),
-          Text(
-            itemName,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textDark,
+          Expanded(
+            child: Text(
+              itemName,
+              maxLines: 2, // Biar bisa turun satu baris kalau terlalu panjang
+              overflow: TextOverflow.ellipsis, // Atau bisa diganti `TextOverflow.fade`
+              softWrap: true,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textDark,
+              ),
             ),
           ),
           const Spacer(),
